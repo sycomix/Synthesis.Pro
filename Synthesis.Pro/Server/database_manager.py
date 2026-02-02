@@ -24,6 +24,7 @@ import urllib.error
 GITHUB_REPO = "Fallen-Entertainment/Synthesis.Pro"
 RELEASES_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 PUBLIC_DB_NAME = "synthesis_knowledge.db"
+MODEL_FILE_NAME = "embeddinggemma-300M-Q8_0.gguf"
 VERSION_FILE = "db_version.json"
 
 
@@ -39,8 +40,13 @@ class DatabaseManager:
         """
         self.server_dir = server_dir or Path(__file__).parent
         self.public_db_path = self.server_dir / PUBLIC_DB_NAME
+        self.models_dir = self.server_dir / "models"
+        self.model_path = self.models_dir / MODEL_FILE_NAME
         self.version_file = self.server_dir / VERSION_FILE
         self.version_info: Dict[str, Any] = {}
+
+        # Ensure models directory exists
+        self.models_dir.mkdir(exist_ok=True)
 
         # Load current version info
         self._load_version_info()
@@ -57,21 +63,40 @@ class DatabaseManager:
         else:
             self.version_info = {}
 
-    def _save_version_info(self, version: str, checksum: str, size: int):
-        """Save database version information"""
-        self.version_info = {
-            "version": version,
-            "checksum": checksum,
-            "size": size,
-            "updated": datetime.now().isoformat(),
-            "source": RELEASES_API
-        }
+    def _save_version_info(self):
+        """Save version information for both database and model"""
+        self.version_info["updated"] = datetime.now().isoformat()
+        self.version_info["source"] = RELEASES_API
 
         try:
             with open(self.version_file, 'w') as f:
                 json.dump(self.version_info, f, indent=2)
         except Exception as e:
             print(f"Warning: Could not save version info: {e}")
+
+    def _update_db_version(self, version: str, checksum: str, size: int):
+        """Update database version in version info"""
+        if "database" not in self.version_info:
+            self.version_info["database"] = {}
+
+        self.version_info["database"] = {
+            "version": version,
+            "checksum": checksum,
+            "size": size
+        }
+        self._save_version_info()
+
+    def _update_model_version(self, version: str, checksum: str, size: int):
+        """Update model version in version info"""
+        if "model" not in self.version_info:
+            self.version_info["model"] = {}
+
+        self.version_info["model"] = {
+            "version": version,
+            "checksum": checksum,
+            "size": size
+        }
+        self._save_version_info()
 
     def _calculate_checksum(self, file_path: Path) -> str:
         """Calculate SHA256 checksum of a file"""
@@ -115,6 +140,22 @@ class DatabaseManager:
 
         return None
 
+    def _find_model_asset(self, release_data: Dict[str, Any]) -> Optional[Dict[str, str]]:
+        """Find the embeddings model asset in release data"""
+        if 'assets' not in release_data:
+            return None
+
+        for asset in release_data['assets']:
+            if asset['name'] == MODEL_FILE_NAME:
+                return {
+                    'name': asset['name'],
+                    'url': asset['browser_download_url'],
+                    'size': asset['size'],
+                    'version': release_data['tag_name']
+                }
+
+        return None
+
     def _download_database(self, url: str, version: str) -> bool:
         """Download database from URL"""
         try:
@@ -146,7 +187,7 @@ class DatabaseManager:
 
             # Save version info
             size = self.public_db_path.stat().st_size
-            self._save_version_info(version, checksum, size)
+            self._update_db_version(version, checksum, size)
 
             print(f"Database downloaded successfully!")
             print(f"  Version: {version}")
@@ -165,6 +206,61 @@ class DatabaseManager:
 
             return False
 
+    def _download_model(self, url: str, version: str) -> bool:
+        """Download embeddings model from URL"""
+        try:
+            print(f"Downloading embeddings model (version {version})...")
+            print(f"  Size: ~300 MB (this may take a few minutes)")
+
+            # Download to temporary file
+            temp_path = self.model_path.with_suffix('.gguf.download')
+
+            # Create progress callback
+            def progress_hook(block_count, block_size, total_size):
+                if total_size > 0:
+                    downloaded = block_count * block_size
+                    percent = min(100, downloaded * 100 / total_size)
+                    mb_downloaded = downloaded / 1024 / 1024
+                    mb_total = total_size / 1024 / 1024
+                    print(f"\rProgress: {percent:.1f}% ({mb_downloaded:.1f}/{mb_total:.1f} MB)", end='', flush=True)
+
+            urllib.request.urlretrieve(url, temp_path, progress_hook)
+            print()  # New line after progress
+
+            # Calculate checksum
+            print("Verifying download integrity...")
+            checksum = self._calculate_checksum(temp_path)
+
+            # Move to final location
+            if self.model_path.exists():
+                # Backup existing model
+                backup_path = self.model_path.with_suffix('.gguf.backup')
+                self.model_path.rename(backup_path)
+                print(f"Previous model backed up to: {backup_path.name}")
+
+            temp_path.rename(self.model_path)
+
+            # Save version info
+            size = self.model_path.stat().st_size
+            self._update_model_version(version, checksum, size)
+
+            print(f"Model downloaded successfully!")
+            print(f"  Version: {version}")
+            print(f"  Size: {size / 1024 / 1024:.2f} MB")
+            print(f"  Checksum: {checksum[:16]}...")
+
+            return True
+
+        except Exception as e:
+            print(f"Error downloading model: {e}")
+
+            # Clean up temp file if it exists
+            temp_path = self.model_path.with_suffix('.gguf.download')
+            if temp_path.exists():
+                temp_path.unlink()
+
+            return False
+
     def check_setup(self) -> bool:
         """
         Check if public database is set up
@@ -173,6 +269,15 @@ class DatabaseManager:
             True if database exists, False otherwise
         """
         return self.public_db_path.exists()
+
+    def check_model_setup(self) -> bool:
+        """
+        Check if embeddings model is set up
+
+        Returns:
+            True if model exists, False otherwise
+        """
+        return self.model_path.exists()
 
     def setup_database(self, force: bool = False) -> bool:
         """
@@ -220,96 +325,190 @@ class DatabaseManager:
         # Download
         return self._download_database(asset['url'], asset['version'])
 
-    def check_for_updates(self) -> Optional[str]:
+    def setup_model(self, force: bool = False) -> bool:
         """
-        Check if a newer database version is available
+        Ensure embeddings model is set up (download if needed)
+
+        Args:
+            force: Force download even if model exists
 
         Returns:
-            New version string if available, None otherwise
+            True if setup successful, False otherwise
         """
-        if not self.check_setup():
-            return None  # No current database to update
+        if self.check_model_setup() and not force:
+            print(f"Embeddings model already exists: {self.model_path.name}")
+            if self.version_info.get('model'):
+                model_info = self.version_info['model']
+                print(f"  Version: {model_info.get('version', 'unknown')}")
+                print(f"  Size: {model_info.get('size', 0) / 1024 / 1024:.2f} MB")
+            return True
+
+        print("\n" + "=" * 60)
+        print("Synthesis.Pro - Embeddings Model Setup")
+        print("=" * 60)
 
         # Fetch latest release
         release_data = self._fetch_latest_release_info()
         if not release_data:
-            return None
+            print("\nCould not connect to GitHub to download model.")
+            print("You can manually download it from:")
+            print(f"https://github.com/{GITHUB_REPO}/releases/latest")
+            return False
 
-        # Find database asset
-        asset = self._find_database_asset(release_data)
+        # Find model asset
+        asset = self._find_model_asset(release_data)
         if not asset:
-            return None
+            print(f"\nEmbeddings model not found in latest release.")
+            print("Semantic search will not be available without this model.")
+            return False
 
-        # Compare versions
-        current_version = self.version_info.get('version', 'unknown')
-        latest_version = asset['version']
+        print(f"\nFound embeddings model:")
+        print(f"  Version: {asset['version']}")
+        print(f"  Size: {asset['size'] / 1024 / 1024:.2f} MB")
+        print(f"\nThis model enables semantic search across your knowledge base.")
 
-        if current_version != latest_version:
-            return latest_version
+        # Download
+        return self._download_model(asset['url'], asset['version'])
 
-        return None
-
-    def update_database(self) -> bool:
+    def check_for_updates(self) -> Dict[str, Optional[str]]:
         """
-        Update public database to latest version
+        Check if newer versions are available for database and/or model
 
         Returns:
-            True if updated successfully, False otherwise
+            Dictionary with 'database' and 'model' keys containing new version strings or None
+        """
+        updates = {'database': None, 'model': None}
+
+        # Fetch latest release
+        release_data = self._fetch_latest_release_info()
+        if not release_data:
+            return updates
+
+        latest_version = release_data['tag_name']
+
+        # Check database
+        if self.check_setup():
+            db_info = self.version_info.get('database', {})
+            current_db_version = db_info.get('version', 'unknown')
+            if current_db_version != latest_version:
+                updates['database'] = latest_version
+
+        # Check model
+        if self.check_model_setup():
+            model_info = self.version_info.get('model', {})
+            current_model_version = model_info.get('version', 'unknown')
+            if current_model_version != latest_version:
+                updates['model'] = latest_version
+
+        return updates
+
+    def update_all(self) -> bool:
+        """
+        Update both database and model to latest versions
+
+        Returns:
+            True if all updates successful, False otherwise
         """
         print("\n" + "=" * 60)
-        print("Synthesis.Pro - Database Update")
+        print("Synthesis.Pro - Update Check")
         print("=" * 60)
 
         # Check for updates
-        new_version = self.check_for_updates()
-        if not new_version:
-            print("\nYou already have the latest database version!")
-            if self.version_info:
-                print(f"  Current version: {self.version_info.get('version', 'unknown')}")
-            return True
+        updates = self.check_for_updates()
 
-        print(f"\nNew version available: {new_version}")
-        print(f"Current version: {self.version_info.get('version', 'unknown')}")
+        if not updates['database'] and not updates['model']:
+            print("\nYou already have the latest versions!")
+            db_info = self.version_info.get('database', {})
+            model_info = self.version_info.get('model', {})
+            if db_info:
+                print(f"  Database: {db_info.get('version', 'unknown')}")
+            if model_info:
+                print(f"  Model: {model_info.get('version', 'unknown')}")
+            return True
 
         # Fetch release info
         release_data = self._fetch_latest_release_info()
         if not release_data:
             return False
 
-        # Find database asset
-        asset = self._find_database_asset(release_data)
-        if not asset:
-            return False
+        success = True
 
-        # Download update
-        return self._download_database(asset['url'], asset['version'])
+        # Update database if needed
+        if updates['database']:
+            print(f"\nDatabase update available: {updates['database']}")
+            db_info = self.version_info.get('database', {})
+            print(f"Current version: {db_info.get('version', 'unknown')}")
 
-    def verify_database(self) -> bool:
+            asset = self._find_database_asset(release_data)
+            if asset:
+                if not self._download_database(asset['url'], asset['version']):
+                    success = False
+            else:
+                print("Warning: Database asset not found in release")
+                success = False
+
+        # Update model if needed
+        if updates['model']:
+            print(f"\nModel update available: {updates['model']}")
+            model_info = self.version_info.get('model', {})
+            print(f"Current version: {model_info.get('version', 'unknown')}")
+
+            asset = self._find_model_asset(release_data)
+            if asset:
+                if not self._download_model(asset['url'], asset['version']):
+                    success = False
+            else:
+                print("Warning: Model asset not found in release")
+                success = False
+
+        return success
+
+    def verify_all(self) -> bool:
         """
-        Verify database integrity using stored checksum
+        Verify integrity of database and model using stored checksums
 
         Returns:
-            True if valid, False otherwise
+            True if all valid, False otherwise
         """
-        if not self.check_setup():
-            print("Public database not found")
-            return False
+        all_valid = True
 
-        if 'checksum' not in self.version_info:
-            print("No checksum available for verification")
-            return False
+        # Verify database
+        if self.check_setup():
+            db_info = self.version_info.get('database', {})
+            if 'checksum' in db_info:
+                print("Verifying database integrity...")
+                current_checksum = self._calculate_checksum(self.public_db_path)
+                stored_checksum = db_info['checksum']
 
-        print("Verifying database integrity...")
-        current_checksum = self._calculate_checksum(self.public_db_path)
-        stored_checksum = self.version_info['checksum']
-
-        if current_checksum == stored_checksum:
-            print("Database verified successfully!")
-            return True
+                if current_checksum == stored_checksum:
+                    print("  Database: ✓ Valid")
+                else:
+                    print("  Database: ✗ Checksum mismatch!")
+                    all_valid = False
+            else:
+                print("  Database: No checksum available")
         else:
-            print("Warning: Database checksum mismatch!")
-            print("The database may be corrupted. Consider re-downloading.")
-            return False
+            print("  Database: Not installed")
+
+        # Verify model
+        if self.check_model_setup():
+            model_info = self.version_info.get('model', {})
+            if 'checksum' in model_info:
+                print("Verifying model integrity...")
+                current_checksum = self._calculate_checksum(self.model_path)
+                stored_checksum = model_info['checksum']
+
+                if current_checksum == stored_checksum:
+                    print("  Model: ✓ Valid")
+                else:
+                    print("  Model: ✗ Checksum mismatch!")
+                    all_valid = False
+            else:
+                print("  Model: No checksum available")
+        else:
+            print("  Model: Not installed")
+
+        return all_valid
 
     def get_contribution_info(self) -> Dict[str, Any]:
         """
@@ -362,41 +561,63 @@ def main():
 
     # Handle commands
     if args.setup:
-        success = manager.setup_database(force=args.force)
+        # Setup both database and model
+        db_success = manager.setup_database(force=args.force)
+        model_success = manager.setup_model(force=args.force)
+        success = db_success and model_success
         sys.exit(0 if success else 1)
 
     elif args.update:
-        success = manager.update_database()
+        success = manager.update_all()
         sys.exit(0 if success else 1)
 
     elif args.verify:
-        success = manager.verify_database()
+        success = manager.verify_all()
         sys.exit(0 if success else 1)
 
     elif args.check:
         print("\n" + "=" * 60)
-        print("Database Status")
+        print("Synthesis.Pro - Status")
         print("=" * 60)
 
+        # Database status
+        print(f"\nPublic Database: {manager.public_db_path.name}")
         if manager.check_setup():
-            print(f"\nPublic database: {manager.public_db_path.name}")
-            print(f"  Status: Installed")
+            print(f"  Status: ✓ Installed")
+            db_info = manager.version_info.get('database', {})
+            if db_info:
+                print(f"  Version: {db_info.get('version', 'unknown')}")
+                print(f"  Size: {db_info.get('size', 0) / 1024 / 1024:.2f} MB")
+        else:
+            print(f"  Status: ✗ Not installed")
 
-            if manager.version_info:
-                print(f"  Version: {manager.version_info.get('version', 'unknown')}")
-                print(f"  Size: {manager.version_info.get('size', 0) / 1024 / 1024:.2f} MB")
-                print(f"  Updated: {manager.version_info.get('updated', 'unknown')}")
+        # Model status
+        print(f"\nEmbeddings Model: {manager.model_path.name}")
+        if manager.check_model_setup():
+            print(f"  Status: ✓ Installed")
+            model_info = manager.version_info.get('model', {})
+            if model_info:
+                print(f"  Version: {model_info.get('version', 'unknown')}")
+                print(f"  Size: {model_info.get('size', 0) / 1024 / 1024:.2f} MB")
+        else:
+            print(f"  Status: ✗ Not installed")
 
-            # Check for updates
-            new_version = manager.check_for_updates()
-            if new_version:
-                print(f"\n  Update available: {new_version}")
+        # Check for updates
+        if manager.check_setup() or manager.check_model_setup():
+            print(f"\nLast updated: {manager.version_info.get('updated', 'unknown')}")
+
+            updates = manager.check_for_updates()
+            if updates['database'] or updates['model']:
+                print(f"\n  Updates available:")
+                if updates['database']:
+                    print(f"    • Database: {updates['database']}")
+                if updates['model']:
+                    print(f"    • Model: {updates['model']}")
                 print(f"  Run: python database_manager.py --update")
             else:
-                print(f"\n  You have the latest version!")
+                print(f"\n  ✓ Everything is up to date!")
         else:
-            print("\nPublic database: Not installed")
-            print("  Run: python database_manager.py --setup")
+            print("\n  Run: python database_manager.py --setup")
 
         sys.exit(0)
 
@@ -414,18 +635,35 @@ def main():
 
     else:
         # No command specified - run setup check
-        if not manager.check_setup():
-            print("\nPublic database not found. Running first-time setup...")
-            success = manager.setup_database()
+        needs_setup = not manager.check_setup() or not manager.check_model_setup()
+
+        if needs_setup:
+            print("\nFirst-time setup required...")
+            db_success = True
+            model_success = True
+
+            if not manager.check_setup():
+                print("\nSetting up public database...")
+                db_success = manager.setup_database()
+
+            if not manager.check_model_setup():
+                print("\nSetting up embeddings model...")
+                model_success = manager.setup_model()
+
+            success = db_success and model_success
             sys.exit(0 if success else 1)
         else:
-            # Database exists - check for updates
-            new_version = manager.check_for_updates()
-            if new_version:
-                print(f"\nUpdate available: {new_version}")
-                print(f"Run: python database_manager.py --update")
+            # Everything exists - check for updates
+            updates = manager.check_for_updates()
+            if updates['database'] or updates['model']:
+                print("\nUpdates available:")
+                if updates['database']:
+                    print(f"  • Database: {updates['database']}")
+                if updates['model']:
+                    print(f"  • Model: {updates['model']}")
+                print(f"\nRun: python database_manager.py --update")
             else:
-                print("\nDatabase is up to date!")
+                print("\n✓ Everything is up to date!")
             sys.exit(0)
 
 

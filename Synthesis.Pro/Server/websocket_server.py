@@ -134,19 +134,35 @@ class SynthesisWebSocketServer:
         try:
             self.logger.info("Initializing RAG engine...")
 
-            # Check and setup public database
+            # Check and setup public database and embeddings model
             db_manager = DatabaseManager()
+
+            # Setup database
             if not db_manager.check_setup():
                 self.logger.info("Public database not found - running first-time setup...")
                 success = db_manager.setup_database()
                 if not success:
                     self.logger.warning("Could not download public database")
                     self.logger.warning("Public database will be created as you use Synthesis.Pro")
-            else:
-                # Check for updates (non-blocking)
-                new_version = db_manager.check_for_updates()
-                if new_version:
-                    self.logger.info(f"Database update available: {new_version}")
+
+            # Setup embeddings model
+            if not db_manager.check_model_setup():
+                self.logger.info("Embeddings model not found - downloading...")
+                success = db_manager.setup_model()
+                if not success:
+                    self.logger.warning("Could not download embeddings model")
+                    self.logger.warning("Semantic search will not be available")
+
+            # Check for updates (non-blocking)
+            if db_manager.check_setup() or db_manager.check_model_setup():
+                updates = db_manager.check_for_updates()
+                if updates.get('database') or updates.get('model'):
+                    update_list = []
+                    if updates.get('database'):
+                        update_list.append(f"database ({updates['database']})")
+                    if updates.get('model'):
+                        update_list.append(f"model ({updates['model']})")
+                    self.logger.info(f"Updates available: {', '.join(update_list)}")
                     self.logger.info("Run 'python database_manager.py --update' to update")
 
             # Create RAG with dual databases
@@ -755,25 +771,32 @@ class SynthesisWebSocketServer:
 
     async def _handle_check_db_updates(self, command_id: str, parameters: dict) -> dict:
         """
-        Check if public database updates are available
+        Check if database or model updates are available
 
-        Returns information about the current and latest database versions.
+        Returns information about the current and latest versions.
         """
         try:
             db_manager = DatabaseManager()
 
-            # Get current version
-            current_version = db_manager.version_info.get('version', 'unknown')
+            # Get current versions
+            db_info = db_manager.version_info.get('database', {})
+            model_info = db_manager.version_info.get('model', {})
             current_updated = db_manager.version_info.get('updated', 'unknown')
 
             # Check for updates
-            latest_version = db_manager.check_for_updates()
+            updates = db_manager.check_for_updates()
 
-            if latest_version:
-                message = f"Update available: {latest_version}"
+            update_list = []
+            if updates.get('database'):
+                update_list.append(f"database ({updates['database']})")
+            if updates.get('model'):
+                update_list.append(f"model ({updates['model']})")
+
+            if update_list:
+                message = f"Updates available: {', '.join(update_list)}"
                 update_available = True
             else:
-                message = "Database is up to date"
+                message = "Everything is up to date"
                 update_available = False
 
             return {
@@ -781,9 +804,16 @@ class SynthesisWebSocketServer:
                 "success": True,
                 "message": message,
                 "data": {
-                    "current_version": current_version,
-                    "latest_version": latest_version or current_version,
-                    "update_available": update_available,
+                    "database": {
+                        "current_version": db_info.get('version', 'unknown'),
+                        "latest_version": updates.get('database', db_info.get('version', 'unknown')),
+                        "update_available": bool(updates.get('database'))
+                    },
+                    "model": {
+                        "current_version": model_info.get('version', 'unknown'),
+                        "latest_version": updates.get('model', model_info.get('version', 'unknown')),
+                        "update_available": bool(updates.get('model'))
+                    },
                     "last_updated": current_updated
                 },
                 "timestamp": datetime.now().isoformat()
@@ -800,38 +830,45 @@ class SynthesisWebSocketServer:
 
     async def _handle_update_public_db(self, command_id: str, parameters: dict) -> dict:
         """
-        Update public database to latest version
+        Update database and model to latest versions
 
-        Downloads and installs the latest Unity documentation database.
+        Downloads and installs updates for both the Unity documentation database
+        and the embeddings model.
         """
         try:
             db_manager = DatabaseManager()
 
             # Check if update is available
-            new_version = db_manager.check_for_updates()
-            if not new_version:
+            updates = db_manager.check_for_updates()
+            if not updates.get('database') and not updates.get('model'):
                 return {
                     "commandId": command_id,
                     "success": True,
-                    "message": "Database is already up to date",
+                    "message": "Everything is already up to date",
                     "timestamp": datetime.now().isoformat()
                 }
 
             # Perform update
-            self.logger.info(f"Downloading database update: {new_version}")
-            success = db_manager.update_database()
+            update_list = []
+            if updates.get('database'):
+                update_list.append(f"database ({updates['database']})")
+            if updates.get('model'):
+                update_list.append(f"model ({updates['model']})")
+
+            self.logger.info(f"Downloading updates: {', '.join(update_list)}")
+            success = db_manager.update_all()
 
             if success:
-                # Reinitialize RAG with updated database
+                # Reinitialize RAG with updated database/model
                 await self._initialize_rag()
 
                 return {
                     "commandId": command_id,
                     "success": True,
-                    "message": f"Database updated to version {new_version}",
+                    "message": f"Updated: {', '.join(update_list)}",
                     "data": {
-                        "version": new_version,
-                        "size": db_manager.version_info.get('size', 0)
+                        "database": db_manager.version_info.get('database', {}),
+                        "model": db_manager.version_info.get('model', {})
                     },
                     "timestamp": datetime.now().isoformat()
                 }
@@ -839,7 +876,7 @@ class SynthesisWebSocketServer:
                 return {
                     "commandId": command_id,
                     "success": False,
-                    "message": "Database update failed",
+                    "message": "Update failed",
                     "timestamp": datetime.now().isoformat()
                 }
 
