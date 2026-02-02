@@ -1,0 +1,39 @@
+# Synthesis Package - .gitignore
+
+# Unity meta files (if not in repo)
+*.meta
+
+# Unity build artifacts
+*.csproj
+*.unityproj
+*.sln
+
+# Node.js (MCP Server)
+Server/node_modules/
+Server/build/
+Server/package-lock.json
+Server/*.log
+
+# Knowledge Base
+KnowledgeBase/*.db
+KnowledgeBase/*.db-shm
+KnowledgeBase/*.db-wal
+
+# Logs
+*.log
+*.txt
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Testing
+TestResults/
+*.Test.dll

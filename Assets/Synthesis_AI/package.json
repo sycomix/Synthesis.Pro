@@ -1,0 +1,43 @@
+{
+  "name": "com.nightblade.synthesis",
+  "displayName": "Synthesis - AI Creative Partner for Unity",
+  "version": "1.1.0",
+  "unity": "2020.3",
+  "description": "Where human creativity and AI capability become one. Synthesis enables real-time AI collaboration in Unity - not a tool you use, but a partner you create with. 12 powerful commands, SQLite knowledge base, HTTP server, AI learning system. Professional AI partnership for game developers. By NightBlade Development.",
+  "keywords": [
+    "ai",
+    "assistant",
+    "mcp",
+    "automation",
+    "testing",
+    "ui",
+    "tools",
+    "external-control",
+    "communication",
+    "bridge",
+    "professional",
+    "commercial",
+    "knowledge-base",
+    "sqlite",
+    "learning"
+  ],
+  "category": "Editor Extensions",
+  "license": "Commercial",
+  "type": "tool",
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.0.2"
+  },
+  "author": {
+    "name": "NightBlade Development",
+    "email": "support@nightblade.dev",
+    "url": "https://nightblade.dev"
+  },
+  "samples": [
+    {
+      "displayName": "Basic Setup",
+      "description": "Basic Synthesis setup with example scene",
+      "path": "Samples~/BasicSetup"
+    }
+  ]
+}
+

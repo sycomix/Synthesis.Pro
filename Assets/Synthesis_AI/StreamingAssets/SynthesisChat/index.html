@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synthesis AI Chat</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="chat-container">
+        <!-- Header -->
+        <div class="chat-header">
+            <div class="header-left">
+                <div class="ai-avatar">🤖</div>
+                <div class="header-info">
+                    <h1>Synthesis AI Assistant</h1>
+                    <p class="status" id="status">Connected</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="icon-button" id="clearBtn" title="Clear Chat">
+                    <span>🗑️</span>
+                </button>
+                <button class="icon-button" id="settingsBtn" title="Settings">
+                    <span>⚙️</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Messages Area -->
+        <div class="messages-container" id="messagesContainer">
+            <div class="welcome-message">
+                <div class="welcome-icon">👋</div>
+                <h2>Welcome to Synthesis AI Chat!</h2>
+                <p>I can help you with:</p>
+                <ul>
+                    <li>🎮 Unity development questions</li>
+                    <li>💻 Code explanations and debugging</li>
+                    <li>🎨 Real-time scene manipulation</li>
+                    <li>🏗️ Architecture guidance</li>
+                    <li>🐛 Bug troubleshooting</li>
+                </ul>
+                <p>Type your message below to get started!</p>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="input-container">
+            <div class="input-wrapper">
+                <textarea 
+                    id="messageInput" 
+                    placeholder="Type your message here... (Shift+Enter for new line, Enter to send)"
+                    rows="1"
+                ></textarea>
+                <button class="send-button" id="sendBtn" title="Send message">
+                    <span>📤</span>
+                </button>
+            </div>
+            <div class="input-hints">
+                <span class="hint">💡 I can control Unity in real-time while we chat!</span>
+                <span class="hint-shortcut">Press <kbd>Enter</kbd> to send</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="chat.js"></script>
+</body>
+</html>

@@ -1,0 +1,312 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "created": "2026-01-28",
+    "total_commands": 9,
+    "total_workflows": 5,
+    "total_examples": 5,
+    "total_faqs": 5
+  },
+  
+  "commands": [
+    {
+      "id": 1,
+      "name": "Ping",
+      "category": "System",
+      "description": "Checks if Synthesis is alive and responding",
+      "parameters": {},
+      "example_request": {
+        "command": "Ping",
+        "id": "test"
+      },
+      "example_response": {
+        "id": "test",
+        "success": true,
+        "message": "pong"
+      },
+      "use_cases": "Health checks, verify connection, test bridge is active",
+      "related_commands": "GetSceneInfo, Log",
+      "common_errors": "No response - Bridge not initialized or Unity not in Play mode"
+    },
+    {
+      "id": 2,
+      "name": "FindGameObject",
+      "category": "GameObject Management",
+      "description": "Finds a GameObject in active scene by name",
+      "parameters": {
+        "name": "string (required) - Exact name of GameObject"
+      },
+      "example_request": {
+        "command": "FindGameObject",
+        "id": "find_player",
+        "parameters": {
+          "name": "Player"
+        }
+      },
+      "example_response": {
+        "id": "find_player",
+        "success": true,
+        "data": {
+          "objectId": "12345",
+          "name": "Player",
+          "path": "GameWorld/Characters/Player",
+          "position": {"x": 0, "y": 1, "z": 0},
+          "active": true,
+          "components": ["Transform", "Rigidbody"]
+        }
+      },
+      "use_cases": "Locate objects before manipulation, verify object exists, get references",
+      "related_commands": "GetComponent, SetComponentValue, GetChildren",
+      "common_errors": "GameObject not found - Name is case-sensitive and must be exact"
+    },
+    {
+      "id": 3,
+      "name": "SetComponentValue",
+      "category": "Component Manipulation",
+      "description": "Sets a field or property value on a component",
+      "parameters": {
+        "objectId": "string (required) - ID from FindGameObject",
+        "componentType": "string (required) - Full component type name",
+        "field": "string (required) - Field or property name",
+        "value": "any (required) - New value (type must match)"
+      },
+      "example_request": {
+        "command": "SetComponentValue",
+        "id": "move_player",
+        "parameters": {
+          "objectId": "12345",
+          "componentType": "Transform",
+          "field": "position",
+          "value": {"x": 10, "y": 0, "z": 5}
+        }
+      },
+      "example_response": {
+        "id": "move_player",
+        "success": true,
+        "message": "Value set successfully"
+      },
+      "use_cases": "Move objects, change UI properties, update component values in real-time",
+      "related_commands": "GetComponentValue, FindGameObject",
+      "common_errors": "Type mismatch - Value type must match field type exactly"
+    }
+  ],
+  
+  "workflows": [
+    {
+      "id": 1,
+      "title": "Move UI Element",
+      "description": "Reposition a UI element to new screen coordinates",
+      "difficulty": "Beginner",
+      "estimated_time_seconds": 2,
+      "steps": [
+        {
+          "step": 1,
+          "action": "Find UI element",
+          "command": "FindGameObject",
+          "example": {"command": "FindGameObject", "parameters": {"name": "HealthBar"}}
+        },
+        {
+          "step": 2,
+          "action": "Update position",
+          "command": "SetComponentValue",
+          "example": {
+            "command": "SetComponentValue",
+            "parameters": {
+              "objectId": "<objectId from step 1>",
+              "componentType": "RectTransform",
+              "field": "anchoredPosition",
+              "value": {"x": 100, "y": 50}
+            }
+          }
+        }
+      ],
+      "tags": "ui, positioning, rectTransform, beginner",
+      "commands_used": ["FindGameObject", "SetComponentValue"]
+    },
+    {
+      "id": 2,
+      "title": "Change UI Text",
+      "description": "Update TextMeshPro text content",
+      "difficulty": "Beginner",
+      "estimated_time_seconds": 2,
+      "steps": [
+        {
+          "step": 1,
+          "action": "Find text element",
+          "command": "FindGameObject",
+          "example": {"command": "FindGameObject", "parameters": {"name": "ScoreText"}}
+        },
+        {
+          "step": 2,
+          "action": "Update text",
+          "command": "SetComponentValue",
+          "example": {
+            "command": "SetComponentValue",
+            "parameters": {
+              "objectId": "<objectId from step 1>",
+              "componentType": "TMPro.TextMeshProUGUI",
+              "field": "text",
+              "value": "Score: 9999"
+            }
+          }
+        }
+      ],
+      "tags": "ui, text, textmeshpro, beginner",
+      "commands_used": ["FindGameObject", "SetComponentValue"]
+    },
+    {
+      "id": 3,
+      "title": "Batch Update Button Colors",
+      "description": "Change color of multiple UI buttons",
+      "difficulty": "Intermediate",
+      "estimated_time_seconds": 5,
+      "steps": [
+        {
+          "step": 1,
+          "action": "Get scene hierarchy",
+          "command": "GetHierarchy"
+        },
+        {
+          "step": 2,
+          "action": "Find all buttons (manual filtering)",
+          "command": "FindGameObject",
+          "note": "Repeat for each button found in hierarchy"
+        },
+        {
+          "step": 3,
+          "action": "Update each button color",
+          "command": "SetComponentValue",
+          "example": {
+            "command": "SetComponentValue",
+            "parameters": {
+              "objectId": "<button objectId>",
+              "componentType": "UnityEngine.UI.Image",
+              "field": "color",
+              "value": {"r": 0, "g": 0.5, "b": 1, "a": 1}
+            }
+          }
+        }
+      ],
+      "tags": "ui, buttons, batch, colors, intermediate",
+      "commands_used": ["GetHierarchy", "FindGameObject", "SetComponentValue"]
+    }
+  ],
+  
+  "examples": [
+    {
+      "id": 1,
+      "title": "Simple Health Check",
+      "description": "Verify Synthesis is working",
+      "category": "Getting Started",
+      "difficulty": "Beginner",
+      "code": "{\n  \"command\": \"Ping\",\n  \"id\": \"health_check\"\n}",
+      "expected_result": "Response with success:true and message:'pong'",
+      "tags": "ping, health, test, beginner"
+    },
+    {
+      "id": 2,
+      "title": "Find and Move Player",
+      "description": "Locate player object and change position",
+      "category": "GameObject Manipulation",
+      "difficulty": "Beginner",
+      "code": "// Step 1: Find player\n{\n  \"command\": \"FindGameObject\",\n  \"id\": \"find_player\",\n  \"parameters\": {\n    \"name\": \"Player\"\n  }\n}\n\n// Step 2: Move player (use objectId from step 1)\n{\n  \"command\": \"SetComponentValue\",\n  \"id\": \"move_player\",\n  \"parameters\": {\n    \"objectId\": \"12345\",\n    \"componentType\": \"Transform\",\n    \"field\": \"position\",\n    \"value\": {\"x\": 10, \"y\": 0, \"z\": 5}\n  }\n}",
+      "tags": "gameobject, transform, position, movement"
+    },
+    {
+      "id": 3,
+      "title": "Update UI Score Display",
+      "description": "Change score text in real-time",
+      "category": "UI Manipulation",
+      "difficulty": "Beginner",
+      "code": "{\n  \"command\": \"SetComponentValue\",\n  \"id\": \"update_score\",\n  \"parameters\": {\n    \"objectId\": \"67890\",\n    \"componentType\": \"TMPro.TextMeshProUGUI\",\n    \"field\": \"text\",\n    \"value\": \"Score: 1500\"\n  }\n}",
+      "tags": "ui, text, textmeshpro, score"
+    }
+  ],
+  
+  "faqs": [
+    {
+      "id": 1,
+      "question": "Why isn't Synthesis responding to commands?",
+      "answer": "Check these common issues:\n\n1. Unity must be in Play mode\n2. 'Enable Bridge' must be checked on Synthesis component\n3. Wait at least 0.5 seconds between command and result\n4. Check synthesis_logs.txt for errors\n5. Verify JSON syntax is valid\n6. Ensure files are in project root folder",
+      "category": "Troubleshooting",
+      "keywords": "not working, not responding, no response",
+      "related_commands": ["Ping"]
+    },
+    {
+      "id": 2,
+      "question": "How do I find the objectId for a GameObject?",
+      "answer": "Use the FindGameObject command first:\n\n1. Send FindGameObject command with the object name\n2. Check the response - objectId is in the 'data' field\n3. Use that objectId in subsequent commands\n\nExample:\n{\"command\":\"FindGameObject\",\"parameters\":{\"name\":\"Player\"}}\nResponse will contain: {\"data\":{\"objectId\":\"12345\",...}}",
+      "category": "Getting Started",
+      "keywords": "objectId, find object, reference",
+      "related_commands": ["FindGameObject"]
+    },
+    {
+      "id": 3,
+      "question": "Can I modify objects outside Play mode?",
+      "answer": "No, Synthesis only works during Play mode for safety reasons. This prevents accidental permanent changes to scenes/prefabs.\n\nHowever, you can:\n1. Use the Persistence System (UIChangeLog) to save runtime changes\n2. Changes are automatically applied when exiting Play mode\n3. This gives you the safety of testing in Play mode with the convenience of permanent edits",
+      "category": "Usage",
+      "keywords": "edit mode, play mode, when to use",
+      "related_commands": []
+    },
+    {
+      "id": 4,
+      "question": "What component types can I modify?",
+      "answer": "You can modify any MonoBehaviour component! Common types:\n\nTransform: position, rotation, scale\nRectTransform: anchoredPosition, sizeDelta\nUnityEngine.UI.Image: color, sprite\nUnityEngine.UI.Text: text, fontSize, color\nTMPro.TextMeshProUGUI: text, fontSize, color\nRigidbody: velocity, mass\nCamera: fieldOfView, backgroundColor\n\nUse the full namespace (e.g., 'TMPro.TextMeshProUGUI' not just 'TextMeshProUGUI')",
+      "category": "Component Types",
+      "keywords": "component types, what can modify",
+      "related_commands": ["SetComponentValue", "GetComponent"]
+    },
+    {
+      "id": 5,
+      "question": "How do I use Synthesis with AI assistants?",
+      "answer": "Synthesis is designed for AI integration:\n\n1. AI writes command to synthesis_commands.json\n2. Unity reads and executes (every 0.5s)\n3. AI reads result from synthesis_results.json\n\nWorks great with:\n- Cursor AI (built-in file access)\n- Claude/ChatGPT via MCP\n- Python/JavaScript scripts\n- Custom automation tools\n\nFor real-time: Use HTTP server mode (port 8765)",
+      "category": "AI Integration",
+      "keywords": "ai, cursor, claude, chatgpt, integration",
+      "related_commands": ["Ping", "Log"]
+    }
+  ],
+  
+  "errors": [
+    {
+      "error_code": "OBJ_NOT_FOUND",
+      "error_message": "GameObject not found",
+      "cause": "No GameObject with specified name exists in active scene",
+      "solution": "1. Verify object name is exact (case-sensitive)\n2. Check object is in active scene\n3. Use GetHierarchy to see all available objects\n4. Check object isn't disabled/inactive",
+      "severity": "Error",
+      "related_command": "FindGameObject"
+    },
+    {
+      "error_code": "COMP_NOT_FOUND",
+      "error_message": "Component not found",
+      "cause": "Specified component type doesn't exist on GameObject",
+      "solution": "1. Use GetComponent to see available components\n2. Check component type spelling\n3. Use full namespace (e.g., 'UnityEngine.UI.Image')\n4. Verify component is attached in Inspector",
+      "severity": "Error",
+      "related_command": "SetComponentValue"
+    },
+    {
+      "error_code": "FIELD_NOT_FOUND",
+      "error_message": "Field not found",
+      "cause": "Specified field/property doesn't exist on component",
+      "solution": "1. Use GetComponent to see available fields\n2. Check field name spelling (case-sensitive)\n3. Verify field is public or has public property\n4. Check Unity documentation for component",
+      "severity": "Error",
+      "related_command": "SetComponentValue"
+    },
+    {
+      "error_code": "TYPE_MISMATCH",
+      "error_message": "Type mismatch",
+      "cause": "Value type doesn't match field type",
+      "solution": "1. Check field type with GetComponentValue\n2. Use correct JSON format:\n   - Vector3: {\"x\":1,\"y\":2,\"z\":3}\n   - Color: {\"r\":1,\"g\":0,\"b\":0,\"a\":1}\n   - Float: 3.14\n   - String: \"text\"\n3. Don't use quotes for numbers",
+      "severity": "Error",
+      "related_command": "SetComponentValue"
+    },
+    {
+      "error_code": "NOT_IN_PLAY_MODE",
+      "error_message": "Bridge only works in Play mode",
+      "cause": "Attempted to use bridge while Unity is in Edit mode",
+      "solution": "1. Press Play button in Unity\n2. Wait for scene to load\n3. Try command again\n4. For Edit mode changes, use Persistence System",
+      "severity": "Warning",
+      "related_command": "All"
+    }
+  ]
+}
+

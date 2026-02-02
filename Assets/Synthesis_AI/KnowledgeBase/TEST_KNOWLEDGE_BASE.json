@@ -1,0 +1,35 @@
+{
+  "description": "Quick test to verify Synthesis Knowledge Base is working",
+  "instructions": [
+    "1. Start Unity and enter Play mode",
+    "2. Copy this entire file content",
+    "3. Paste into unity_bridge_commands.json (or synthesis_commands.json)",
+    "4. Wait 0.5 seconds",
+    "5. Check unity_bridge_results.json (or synthesis_results.json) for results",
+    "6. You should see search results with commands, workflows, and FAQs!"
+  ],
+  
+  "commands": [
+    {
+      "id": "test_kb_commands",
+      "type": "SearchCommands",
+      "parameters": {
+        "searchTerm": "GameObject"
+      }
+    },
+    {
+      "id": "test_kb_workflows",
+      "type": "SearchWorkflows",
+      "parameters": {
+        "tag": "ui"
+      }
+    },
+    {
+      "id": "test_kb_faq",
+      "type": "SearchFAQ",
+      "parameters": {
+        "searchTerm": "responding"
+      }
+    }
+  ]
+}

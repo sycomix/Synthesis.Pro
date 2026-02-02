@@ -1,0 +1,194 @@
+{
+  "description": "Example commands for using the Synthesis Knowledge Base",
+  "examples": [
+    {
+      "name": "Search for GameObject commands",
+      "description": "Find all commands related to GameObjects",
+      "command": {
+        "commands": [
+          {
+            "id": "search_gameobject",
+            "type": "SearchCommands",
+            "parameters": {
+              "searchTerm": "GameObject"
+            }
+          }
+        ]
+      },
+      "expected_result": "Returns FindGameObject, GetGameObject, and related commands"
+    },
+    {
+      "name": "Search for UI workflows",
+      "description": "Find workflows tagged with 'ui'",
+      "command": {
+        "commands": [
+          {
+            "id": "search_ui_workflows",
+            "type": "SearchWorkflows",
+            "parameters": {
+              "tag": "ui"
+            }
+          }
+        ]
+      },
+      "expected_result": "Returns UI-related workflows like 'Move UI Element'"
+    },
+    {
+      "name": "Search for troubleshooting help",
+      "description": "Find FAQ about common issues",
+      "command": {
+        "commands": [
+          {
+            "id": "search_troubleshoot",
+            "type": "SearchFAQ",
+            "parameters": {
+              "searchTerm": "not working"
+            }
+          }
+        ]
+      },
+      "expected_result": "Returns FAQ entries about common problems"
+    },
+    {
+      "name": "Search for positioning commands",
+      "description": "Find commands for moving and positioning objects",
+      "command": {
+        "commands": [
+          {
+            "id": "search_position",
+            "type": "SearchCommands",
+            "parameters": {
+              "searchTerm": "position"
+            }
+          }
+        ]
+      },
+      "expected_result": "Returns SetPosition, SetComponentValue, and Transform-related commands"
+    },
+    {
+      "name": "Find beginner workflows",
+      "description": "Search for easy workflows for beginners",
+      "command": {
+        "commands": [
+          {
+            "id": "search_beginner",
+            "type": "SearchWorkflows",
+            "parameters": {
+              "tag": "beginner"
+            }
+          }
+        ]
+      },
+      "expected_result": "Returns beginner-level workflows"
+    },
+    {
+      "name": "Combined search example",
+      "description": "Search commands and workflows in parallel",
+      "command": {
+        "commands": [
+          {
+            "id": "search_cmd_ui",
+            "type": "SearchCommands",
+            "parameters": {
+              "searchTerm": "UI"
+            }
+          },
+          {
+            "id": "search_workflow_ui",
+            "type": "SearchWorkflows",
+            "parameters": {
+              "tag": "ui"
+            }
+          },
+          {
+            "id": "search_faq_ui",
+            "type": "SearchFAQ",
+            "parameters": {
+              "searchTerm": "UI"
+            }
+          }
+        ]
+      },
+      "expected_result": "Returns all UI-related commands, workflows, and FAQs"
+    },
+    {
+      "name": "AI Assistant workflow",
+      "description": "How an AI would learn about moving objects",
+      "steps": [
+        {
+          "step": 1,
+          "action": "Search for relevant workflows",
+          "command": {
+            "commands": [
+              {
+                "id": "learn_move",
+                "type": "SearchWorkflows",
+                "parameters": {
+                  "tag": "positioning"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "step": 2,
+          "action": "Get details about specific commands from workflow",
+          "command": {
+            "commands": [
+              {
+                "id": "learn_find_cmd",
+                "type": "SearchCommands",
+                "parameters": {
+                  "searchTerm": "FindGameObject"
+                }
+              },
+              {
+                "id": "learn_set_cmd",
+                "type": "SearchCommands",
+                "parameters": {
+                  "searchTerm": "SetComponentValue"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "step": 3,
+          "action": "Execute the actual commands",
+          "command": {
+            "commands": [
+              {
+                "id": "do_find",
+                "type": "FindGameObject",
+                "parameters": {
+                  "name": "Player"
+                }
+              },
+              {
+                "id": "do_move",
+                "type": "SetComponentValue",
+                "parameters": {
+                  "objectId": "<from do_find>",
+                  "componentType": "Transform",
+                  "field": "position",
+                  "value": {
+                    "x": 10,
+                    "y": 5,
+                    "z": 0
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "tips": [
+    "Use broad search terms to find more results (e.g., 'find' vs 'FindGameObject')",
+    "Workflows are tagged for easy discovery - common tags: ui, positioning, beginner, advanced",
+    "FAQ searches check questions, answers, and keywords",
+    "You can search multiple things at once by sending multiple commands in one batch",
+    "The Knowledge Base is populated with core commands automatically on first run"
+  ]
+}
