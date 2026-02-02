@@ -1,65 +1,49 @@
 using UnityEngine;
-using System.IO;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 
 namespace Synthesis.Bridge
 {
     /// <summary>
-    /// SynLink - File-based command system for AI-Unity communication
-    /// 
-    /// How it works:
-    /// 1. External tool writes commands to a JSON file
-    /// 2. Unity reads and executes commands
-    /// 3. Unity writes results back to another JSON file
-    /// 4. External tool reads results
-    /// 
+    /// SynLink - WebSocket-based command system for AI-Unity communication
+    ///
+    /// Refactored for Synthesis.Pro:
+    /// - WebSocket/MCP communication only (no file polling)
+    /// - Clean command execution interface
+    /// - Production-ready security and validation
+    ///
     /// THIS IS HOW AI GETS EYES AND HANDS IN UNITY! 🤖✨
     /// </summary>
     [DefaultExecutionOrder(-1000)]
-    [AddComponentMenu("Synthesis/SynLink (File-based)")]
+    [AddComponentMenu("Synthesis/SynLink (WebSocket)")]
     public class SynLink : MonoBehaviour
     {
         #region Singleton
-        
+
         private static SynLink instance;
         public static SynLink Instance => instance;
-        
+
         #endregion
-        
+
         #region Settings
-        
+
         [Header("Bridge Settings")]
         [SerializeField] private bool enableBridge = true;
-        [SerializeField] private float pollInterval = 0.5f;
-        
-        [Header("File Paths")]
-        [SerializeField] private string commandsFileName = "unity_bridge_commands.json";
-        [SerializeField] private string resultsFileName = "unity_bridge_results.json";
-        [SerializeField] private string logsFileName = "unity_bridge_logs.txt";
-        
-        [Header("Persistence")]
-        [SerializeField] private UIChangeLog changeLog; // Assign in Inspector for persistent changes
-        
-        // Knowledge Base removed - not needed for core functionality
-        
-        private string commandsFilePath;
-        private string resultsFilePath;
-        private string logsFilePath;
-        
-        
+
         #endregion
-        
+
         #region State
-        
-        private float lastPollTime;
+
         private int commandsProcessed = 0;
         private Queue<BridgeCommand> commandQueue = new Queue<BridgeCommand>();
-        
+
+        // Callback for sending results (set by WebSocket/MCP system)
+        public System.Action<BridgeResult> OnResultReady { get; set; }
+
         #endregion
-        
+
         #region Unity Lifecycle
-        
+
         private void Awake()
         {
             // Singleton
@@ -68,103 +52,74 @@ namespace Synthesis.Bridge
                 Destroy(gameObject);
                 return;
             }
-            
+
             instance = this;
             DontDestroyOnLoad(gameObject);
-            
-            // Setup file paths (in project root for easy access)
-            commandsFilePath = Path.Combine(Application.dataPath, "..", commandsFileName);
-            resultsFilePath = Path.Combine(Application.dataPath, "..", resultsFileName);
-            logsFilePath = Path.Combine(Application.dataPath, "..", logsFileName);
-            
-            // Initialize files
-            InitializeBridge();
-            
-            
-            Log("🌉 Unity Bridge Initialized!");
-            Log($"Commands: {commandsFilePath}");
-            Log($"Results: {resultsFilePath}");
-            Log($"Logs: {logsFilePath}");
+
+            Log("🌉 SynLink Initialized (WebSocket Mode)");
         }
-        
+
         private void Update()
         {
             if (!enableBridge)
                 return;
-            
-            // Poll for commands
-            if (Time.time - lastPollTime >= pollInterval)
-            {
-                lastPollTime = Time.time;
-                PollForCommands();
-            }
-            
-            // Process queued commands
+
+            // Process queued commands (one per frame to avoid hitches)
             ProcessCommandQueue();
         }
-        
+
         private void OnDestroy()
         {
-            
             if (instance == this)
             {
                 instance = null;
             }
         }
-        
+
         #endregion
-        
-        #region Bridge Initialization
-        
-        private void InitializeBridge()
+
+        #region Public API
+
+        /// <summary>
+        /// Queue a command for execution (called by WebSocket/MCP system)
+        /// </summary>
+        public void QueueCommand(BridgeCommand cmd)
         {
-            // Create empty results file
-            WriteBridgeResult(new BridgeResult
+            if (cmd == null)
             {
-                success = true,
-                message = "Bridge ready",
-                timestamp = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
-            });
-            
-            // Create log file
-            File.WriteAllText(logsFilePath, $"=== Unity Bridge Logs ===\n{System.DateTime.Now}\n\n");
-        }
-        
-        #endregion
-        
-        #region Command Processing
-        
-        private void PollForCommands()
-        {
-            if (!File.Exists(commandsFilePath))
+                Debug.LogWarning("[SynLink] Attempted to queue null command");
                 return;
-            
-            try
-            {
-                string json = File.ReadAllText(commandsFilePath);
-                
-                if (string.IsNullOrWhiteSpace(json))
-                    return;
-                
-                var commands = JsonConvert.DeserializeObject<BridgeCommandBatch>(json);
-                
-                if (commands?.commands != null)
-                {
-                    foreach (var cmd in commands.commands)
-                    {
-                        commandQueue.Enqueue(cmd);
-                    }
-                    
-                    // Clear the commands file
-                    File.WriteAllText(commandsFilePath, "");
-                }
             }
-            catch (System.Exception ex)
+
+            commandQueue.Enqueue(cmd);
+            Log($"📥 Queued: {cmd.type} (ID: {cmd.id})");
+        }
+
+        /// <summary>
+        /// Queue multiple commands at once
+        /// </summary>
+        public void QueueCommands(IEnumerable<BridgeCommand> commands)
+        {
+            foreach (var cmd in commands)
             {
-                Log($"❌ Error reading commands: {ex.Message}");
+                QueueCommand(cmd);
             }
         }
-        
+
+        /// <summary>
+        /// Get current queue length
+        /// </summary>
+        public int GetQueueLength() => commandQueue.Count;
+
+        /// <summary>
+        /// Get total commands processed this session
+        /// </summary>
+        public int GetCommandsProcessed() => commandsProcessed;
+
+        #endregion
+
+        #region Command Processing
+
         private void ProcessCommandQueue()
         {
             // Process one command per frame to avoid hitches
@@ -174,17 +129,17 @@ namespace Synthesis.Bridge
                 ExecuteCommand(cmd);
             }
         }
-        
+
         private void ExecuteCommand(BridgeCommand cmd)
         {
-            Log($"📥 Executing: {cmd.type} (ID: {cmd.id})");
-            
+            Log($"⚡ Executing: {cmd.type} (ID: {cmd.id})");
+
             BridgeResult result = new BridgeResult
             {
                 commandId = cmd.id,
                 timestamp = System.DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
             };
-            
+
             try
             {
                 // Check if this is an extended command (creative AI powers!)
@@ -193,45 +148,41 @@ namespace Synthesis.Bridge
                     SynLinkExtended.Instance.ProcessExtendedCommand(cmd);
                     return; // Extended handler processes its own result
                 }
-                
+
                 switch (cmd.type)
                 {
                     case "GetSceneInfo":
                         result = GetSceneInfo(cmd);
                         break;
-                    
+
                     case "FindGameObject":
                         result = FindGameObjectCommand(cmd);
                         break;
-                    
+
                     case "GetComponent":
                         result = GetComponentCommand(cmd);
                         break;
-                    
+
                     case "SetComponentValue":
                         result = SetComponentValueCommand(cmd);
                         break;
-                    
+
                     case "SetPosition":
                         result = SetPositionCommand(cmd);
                         break;
-                    
+
                     case "SetActive":
                         result = SetActiveCommand(cmd);
                         break;
-                    
+
                     case "MoveGameObject":
                         result = MoveGameObjectCommand(cmd);
                         break;
-                    
-                    case "RecordChange":
-                        result = RecordChangeCommand(cmd);
-                        break;
-                    
+
                     case "Log":
                         result = LogCommand(cmd);
                         break;
-                    
+
                     case "Ping":
                         result = new BridgeResult
                         {
@@ -246,15 +197,13 @@ namespace Synthesis.Bridge
                             }
                         };
                         break;
-                    
-                    // Knowledge Base commands removed - not needed for core functionality
-                    
+
                     default:
                         result.success = false;
                         result.message = $"Unknown command type: {cmd.type}";
                         break;
                 }
-                
+
                 commandsProcessed++;
             }
             catch (System.Exception ex)
@@ -264,11 +213,11 @@ namespace Synthesis.Bridge
                 result.error = ex.ToString();
                 Log($"❌ Command failed: {ex.Message}");
             }
-            
-            // Write result
-            WriteBridgeResult(result);
+
+            // Send result via callback (WebSocket/MCP will handle delivery)
+            SendResult(result);
         }
-        
+
         private bool IsExtendedCommand(string commandType)
         {
             return commandType == "GenerateImage" ||
@@ -278,16 +227,16 @@ namespace Synthesis.Bridge
                    commandType == "GenerateScript" ||
                    commandType == "GetCapabilities";
         }
-        
+
         #endregion
-        
+
         #region Command Implementations
-        
+
         private BridgeResult GetSceneInfo(BridgeCommand cmd)
         {
             var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
             var rootObjects = scene.GetRootGameObjects();
-            
+
             var sceneInfo = new Dictionary<string, object>
             {
                 { "sceneName", scene.name },
@@ -295,7 +244,7 @@ namespace Synthesis.Bridge
                 { "rootObjectCount", rootObjects.Length },
                 { "rootObjects", System.Array.ConvertAll(rootObjects, go => go.name) }
             };
-            
+
             return new BridgeResult
             {
                 commandId = cmd.id,
@@ -304,11 +253,11 @@ namespace Synthesis.Bridge
                 data = sceneInfo
             };
         }
-        
+
         private BridgeResult FindGameObjectCommand(BridgeCommand cmd)
         {
             string name = cmd.parameters?.GetValueOrDefault("name")?.ToString();
-            
+
             if (string.IsNullOrEmpty(name))
             {
                 return new BridgeResult
@@ -318,9 +267,9 @@ namespace Synthesis.Bridge
                     message = "Missing 'name' parameter"
                 };
             }
-            
+
             GameObject go = GameObject.Find(name);
-            
+
             if (go == null)
             {
                 return new BridgeResult
@@ -330,7 +279,7 @@ namespace Synthesis.Bridge
                     message = $"GameObject '{name}' not found"
                 };
             }
-            
+
             var info = new Dictionary<string, object>
             {
                 { "name", go.name },
@@ -338,7 +287,7 @@ namespace Synthesis.Bridge
                 { "position", go.transform.position.ToString() },
                 { "components", System.Array.ConvertAll(go.GetComponents<Component>(), c => c.GetType().Name) }
             };
-            
+
             return new BridgeResult
             {
                 commandId = cmd.id,
@@ -347,12 +296,12 @@ namespace Synthesis.Bridge
                 data = info
             };
         }
-        
+
         private BridgeResult GetComponentCommand(BridgeCommand cmd)
         {
             string objectName = cmd.parameters?.GetValueOrDefault("object")?.ToString();
             string componentType = cmd.parameters?.GetValueOrDefault("component")?.ToString();
-            
+
             GameObject go = GameObject.Find(objectName);
             if (go == null)
             {
@@ -363,7 +312,7 @@ namespace Synthesis.Bridge
                     message = $"GameObject '{objectName}' not found"
                 };
             }
-            
+
             Component comp = go.GetComponent(componentType);
             if (comp == null)
             {
@@ -374,10 +323,10 @@ namespace Synthesis.Bridge
                     message = $"Component '{componentType}' not found on '{objectName}'"
                 };
             }
-            
+
             // Get component data using reflection
             var componentData = GetComponentData(comp);
-            
+
             return new BridgeResult
             {
                 commandId = cmd.id,
@@ -386,14 +335,14 @@ namespace Synthesis.Bridge
                 data = componentData
             };
         }
-        
+
         private BridgeResult SetComponentValueCommand(BridgeCommand cmd)
         {
             string objectName = cmd.parameters?.GetValueOrDefault("object")?.ToString();
             string componentType = cmd.parameters?.GetValueOrDefault("component")?.ToString();
             string fieldName = cmd.parameters?.GetValueOrDefault("field")?.ToString();
             object value = cmd.parameters?.GetValueOrDefault("value");
-            
+
             GameObject go = GameObject.Find(objectName);
             if (go == null)
             {
@@ -404,7 +353,7 @@ namespace Synthesis.Bridge
                     message = $"GameObject '{objectName}' not found"
                 };
             }
-            
+
             Component comp = go.GetComponent(componentType);
             if (comp == null)
             {
@@ -415,13 +364,13 @@ namespace Synthesis.Bridge
                     message = $"Component '{componentType}' not found"
                 };
             }
-            
+
             // Use reflection to set value
-            var field = comp.GetType().GetField(fieldName, 
-                System.Reflection.BindingFlags.Public | 
-                System.Reflection.BindingFlags.NonPublic | 
+            var field = comp.GetType().GetField(fieldName,
+                System.Reflection.BindingFlags.Public |
+                System.Reflection.BindingFlags.NonPublic |
                 System.Reflection.BindingFlags.Instance);
-            
+
             if (field != null)
             {
                 // Convert value to correct type
@@ -434,7 +383,7 @@ namespace Synthesis.Bridge
                     message = $"Set {fieldName} = {convertedValue}"
                 };
             }
-            
+
             // Try property
             var property = comp.GetType().GetProperty(fieldName);
             if (property != null && property.CanWrite)
@@ -449,7 +398,7 @@ namespace Synthesis.Bridge
                     message = $"Set {fieldName} = {convertedValue}"
                 };
             }
-            
+
             return new BridgeResult
             {
                 commandId = cmd.id,
@@ -457,12 +406,12 @@ namespace Synthesis.Bridge
                 message = $"Field/Property '{fieldName}' not found or not writable"
             };
         }
-        
+
         private BridgeResult LogCommand(BridgeCommand cmd)
         {
             string message = cmd.parameters?.GetValueOrDefault("message")?.ToString() ?? "No message";
             Log($"🔔 External: {message}");
-            
+
             return new BridgeResult
             {
                 commandId = cmd.id,
@@ -470,12 +419,12 @@ namespace Synthesis.Bridge
                 message = "Logged"
             };
         }
-        
+
         private BridgeResult SetPositionCommand(BridgeCommand cmd)
         {
             string objectName = cmd.parameters?.GetValueOrDefault("object")?.ToString();
             object positionValue = cmd.parameters?.GetValueOrDefault("position");
-            
+
             GameObject go = GameObject.Find(objectName);
             if (go == null)
             {
@@ -486,10 +435,10 @@ namespace Synthesis.Bridge
                     message = $"GameObject '{objectName}' not found"
                 };
             }
-            
+
             Vector3 position = (Vector3)ConvertValueToType(positionValue, typeof(Vector3));
             go.transform.position = position;
-            
+
             return new BridgeResult
             {
                 commandId = cmd.id,
@@ -501,12 +450,12 @@ namespace Synthesis.Bridge
                 }
             };
         }
-        
+
         private BridgeResult SetActiveCommand(BridgeCommand cmd)
         {
             string objectName = cmd.parameters?.GetValueOrDefault("object")?.ToString();
             bool active = cmd.parameters?.GetValueOrDefault("active")?.ToString() == "true";
-            
+
             GameObject go = GameObject.Find(objectName);
             if (go == null)
             {
@@ -517,9 +466,9 @@ namespace Synthesis.Bridge
                     message = $"GameObject '{objectName}' not found"
                 };
             }
-            
+
             go.SetActive(active);
-            
+
             return new BridgeResult
             {
                 commandId = cmd.id,
@@ -527,15 +476,14 @@ namespace Synthesis.Bridge
                 message = $"Set '{objectName}' active = {active}"
             };
         }
-        
+
         private BridgeResult MoveGameObjectCommand(BridgeCommand cmd)
         {
             string objectName = cmd.parameters?.GetValueOrDefault("object")?.ToString();
             float x = System.Convert.ToSingle(cmd.parameters?.GetValueOrDefault("x") ?? 0);
             float y = System.Convert.ToSingle(cmd.parameters?.GetValueOrDefault("y") ?? 0);
             float z = System.Convert.ToSingle(cmd.parameters?.GetValueOrDefault("z") ?? 0);
-            bool recordChange = cmd.parameters?.GetValueOrDefault("record")?.ToString() == "true";
-            
+
             GameObject go = GameObject.Find(objectName);
             if (go == null)
             {
@@ -546,17 +494,11 @@ namespace Synthesis.Bridge
                     message = $"GameObject '{objectName}' not found"
                 };
             }
-            
+
             Vector3 oldPos = go.transform.position;
             Vector3 newPos = new Vector3(x, y, z);
             go.transform.position = newPos;
-            
-            // Optionally record the change for persistence
-            if (recordChange && changeLog != null)
-            {
-                changeLog.RecordPositionChange(GetGameObjectPath(go), newPos);
-            }
-            
+
             return new BridgeResult
             {
                 commandId = cmd.id,
@@ -565,78 +507,24 @@ namespace Synthesis.Bridge
                 data = new Dictionary<string, object>
                 {
                     { "oldPosition", oldPos.ToString() },
-                    { "newPosition", newPos.ToString() },
-                    { "recorded", recordChange }
+                    { "newPosition", newPos.ToString() }
                 }
             };
         }
-        
-        private BridgeResult RecordChangeCommand(BridgeCommand cmd)
-        {
-            if (changeLog == null)
-            {
-                return new BridgeResult
-                {
-                    commandId = cmd.id,
-                    success = false,
-                    message = "UIChangeLog not assigned to SynLink"
-                };
-            }
 
-            string objectName = cmd.parameters?.GetValueOrDefault("object")?.ToString();
-            string componentType = cmd.parameters?.GetValueOrDefault("component")?.ToString();
-            string fieldName = cmd.parameters?.GetValueOrDefault("field")?.ToString();
-            object value = cmd.parameters?.GetValueOrDefault("value");
-
-            GameObject go = GameObject.Find(objectName);
-            if (go == null)
-            {
-                return new BridgeResult
-                {
-                    commandId = cmd.id,
-                    success = false,
-                    message = $"GameObject '{objectName}' not found"
-                };
-            }
-
-            string objectPath = GetGameObjectPath(go);
-
-            if (string.IsNullOrEmpty(componentType))
-            {
-                // Record transform change
-                if (fieldName == "position")
-                {
-                    changeLog.RecordPositionChange(objectPath, go.transform.position);
-                }
-                // Add more transform properties as needed
-            }
-            else
-            {
-                // Record component field change
-                changeLog.RecordComponentChange(objectPath, componentType, fieldName, value);
-            }
-
-            return new BridgeResult
-            {
-                commandId = cmd.id,
-                success = true,
-                message = $"Recorded change for '{objectName}'"
-            };
-        }
-        
         #endregion
-        
+
         #region Helpers
-        
+
         private object ConvertValueToType(object value, System.Type targetType)
         {
             if (value == null)
                 return null;
-            
+
             // Already correct type
             if (targetType.IsInstanceOfType(value))
                 return value;
-            
+
             // Handle Unity types that come as JSON objects (Newtonsoft.Json.Linq.JObject)
             if (value is Newtonsoft.Json.Linq.JObject jobj)
             {
@@ -649,7 +537,7 @@ namespace Synthesis.Bridge
                         jobj["z"]?.ToObject<float>() ?? 0f
                     );
                 }
-                
+
                 // Vector2
                 if (targetType == typeof(Vector2))
                 {
@@ -658,7 +546,7 @@ namespace Synthesis.Bridge
                         jobj["y"]?.ToObject<float>() ?? 0f
                     );
                 }
-                
+
                 // Color
                 if (targetType == typeof(Color))
                 {
@@ -669,7 +557,7 @@ namespace Synthesis.Bridge
                         jobj["a"]?.ToObject<float>() ?? 1f
                     );
                 }
-                
+
                 // Quaternion
                 if (targetType == typeof(Quaternion))
                 {
@@ -680,7 +568,7 @@ namespace Synthesis.Bridge
                         jobj["w"]?.ToObject<float>() ?? 1f
                     );
                 }
-                
+
                 // Rect
                 if (targetType == typeof(Rect))
                 {
@@ -692,7 +580,7 @@ namespace Synthesis.Bridge
                     );
                 }
             }
-            
+
             // Handle numeric conversions
             try
             {
@@ -709,11 +597,11 @@ namespace Synthesis.Bridge
             {
                 Log($"⚠️ Failed to convert {value} to {targetType.Name}: {ex.Message}");
             }
-            
+
             // Default: try to cast
             return System.Convert.ChangeType(value, targetType);
         }
-        
+
         private string GetGameObjectPath(GameObject obj)
         {
             string path = obj.name;
@@ -725,11 +613,11 @@ namespace Synthesis.Bridge
             }
             return path;
         }
-        
+
         private Dictionary<string, object> GetComponentData(Component comp)
         {
             var data = new Dictionary<string, object>();
-            
+
             // Get all public fields
             var fields = comp.GetType().GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
             foreach (var field in fields)
@@ -741,7 +629,7 @@ namespace Synthesis.Bridge
                 }
                 catch { }
             }
-            
+
             // Get all public properties
             var properties = comp.GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
             foreach (var property in properties)
@@ -756,50 +644,32 @@ namespace Synthesis.Bridge
                     catch { }
                 }
             }
-            
+
             return data;
         }
-        
-        #endregion
-        
-        #region Helpers
-        
-        private void WriteBridgeResult(BridgeResult result)
+
+        private void SendResult(BridgeResult result)
         {
-            try
-            {
-                string json = JsonConvert.SerializeObject(result, Formatting.Indented);
-                File.WriteAllText(resultsFilePath, json);
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogError($"[SynLink] Failed to write result: {ex.Message}");
-            }
+            // Send via callback (WebSocket/MCP system will handle delivery)
+            OnResultReady?.Invoke(result);
         }
-        
+
         private void Log(string message)
         {
-            string logEntry = $"[{System.DateTime.Now:HH:mm:ss}] {message}\n";
             Debug.Log($"[SynLink] {message}");
-            
-            try
-            {
-                File.AppendAllText(logsFilePath, logEntry);
-            }
-            catch { }
         }
-        
+
         #endregion
     }
-    
+
     #region Data Structures
-    
+
     [System.Serializable]
     public class BridgeCommandBatch
     {
         public List<BridgeCommand> commands;
     }
-    
+
     [System.Serializable]
     public class BridgeCommand
     {
@@ -807,7 +677,7 @@ namespace Synthesis.Bridge
         public string type;
         public Dictionary<string, object> parameters;
     }
-    
+
     [System.Serializable]
     public class BridgeResult
     {
@@ -818,6 +688,6 @@ namespace Synthesis.Bridge
         public Dictionary<string, object> data;
         public string error;
     }
-    
+
     #endregion
 }
