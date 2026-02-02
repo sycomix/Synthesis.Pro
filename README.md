@@ -72,3 +72,4 @@ Both you and your AI partner deserve privacy for honest collaboration.
 ## Availability
 
 Available on Unity Asset Store - built for the community 🤝
+
