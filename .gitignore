@@ -110,9 +110,10 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
-# Synthesis.Pro - Embedded Python Runtime
+# Synthesis.Pro - Embedded Python Runtime and Models
 # Large binary files that should be downloaded, not committed
 Synthesis.Pro/Server/python/
+Synthesis.Pro/Server/models/
 Assets/Synthesis_AI/KnowledgeBase/python/
 
 # Synthesis.Pro - Migration artifacts
