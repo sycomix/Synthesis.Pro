@@ -97,3 +97,24 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+
+# Synthesis.Pro - RAG Databases and Cache
+# Never commit user databases (contain sensitive data)
+*.db
+*.db-shm
+*.db-wal
+backups/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+
+# Synthesis.Pro - Embedded Python Runtime
+# Large binary files that should be downloaded, not committed
+Synthesis.Pro/Server/python/
+Assets/Synthesis_AI/KnowledgeBase/python/
+
+# Synthesis.Pro - Migration artifacts
+Synthesis.Pro/Server/migration_log.txt
+nul

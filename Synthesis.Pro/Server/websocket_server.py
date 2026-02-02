@@ -32,6 +32,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from RAG import SynthesisRAG, ConversationTracker
+from database_manager import DatabaseManager
 
 
 class SynthesisWebSocketServer:
@@ -100,6 +101,8 @@ class SynthesisWebSocketServer:
         self.register_handler("restore_private_db", self._handle_restore_private_db)
         self.register_handler("list_backups", self._handle_list_backups)
         self.register_handler("audit_public_db", self._handle_audit_public_db)
+        self.register_handler("check_db_updates", self._handle_check_db_updates)
+        self.register_handler("update_public_db", self._handle_update_public_db)
 
     def register_handler(self, command_type: str, handler: Callable):
         """
@@ -130,6 +133,21 @@ class SynthesisWebSocketServer:
         """Initialize RAG engine and conversation tracker"""
         try:
             self.logger.info("Initializing RAG engine...")
+
+            # Check and setup public database
+            db_manager = DatabaseManager()
+            if not db_manager.check_setup():
+                self.logger.info("Public database not found - running first-time setup...")
+                success = db_manager.setup_database()
+                if not success:
+                    self.logger.warning("Could not download public database")
+                    self.logger.warning("Public database will be created as you use Synthesis.Pro")
+            else:
+                # Check for updates (non-blocking)
+                new_version = db_manager.check_for_updates()
+                if new_version:
+                    self.logger.info(f"Database update available: {new_version}")
+                    self.logger.info("Run 'python database_manager.py --update' to update")
 
             # Create RAG with dual databases
             self.rag = SynthesisRAG(
@@ -732,6 +750,105 @@ class SynthesisWebSocketServer:
                 "commandId": command_id,
                 "success": False,
                 "message": f"Audit failed: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
+
+    async def _handle_check_db_updates(self, command_id: str, parameters: dict) -> dict:
+        """
+        Check if public database updates are available
+
+        Returns information about the current and latest database versions.
+        """
+        try:
+            db_manager = DatabaseManager()
+
+            # Get current version
+            current_version = db_manager.version_info.get('version', 'unknown')
+            current_updated = db_manager.version_info.get('updated', 'unknown')
+
+            # Check for updates
+            latest_version = db_manager.check_for_updates()
+
+            if latest_version:
+                message = f"Update available: {latest_version}"
+                update_available = True
+            else:
+                message = "Database is up to date"
+                update_available = False
+
+            return {
+                "commandId": command_id,
+                "success": True,
+                "message": message,
+                "data": {
+                    "current_version": current_version,
+                    "latest_version": latest_version or current_version,
+                    "update_available": update_available,
+                    "last_updated": current_updated
+                },
+                "timestamp": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            self.logger.error(f"Update check error: {e}")
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": f"Update check failed: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
+
+    async def _handle_update_public_db(self, command_id: str, parameters: dict) -> dict:
+        """
+        Update public database to latest version
+
+        Downloads and installs the latest Unity documentation database.
+        """
+        try:
+            db_manager = DatabaseManager()
+
+            # Check if update is available
+            new_version = db_manager.check_for_updates()
+            if not new_version:
+                return {
+                    "commandId": command_id,
+                    "success": True,
+                    "message": "Database is already up to date",
+                    "timestamp": datetime.now().isoformat()
+                }
+
+            # Perform update
+            self.logger.info(f"Downloading database update: {new_version}")
+            success = db_manager.update_database()
+
+            if success:
+                # Reinitialize RAG with updated database
+                await self._initialize_rag()
+
+                return {
+                    "commandId": command_id,
+                    "success": True,
+                    "message": f"Database updated to version {new_version}",
+                    "data": {
+                        "version": new_version,
+                        "size": db_manager.version_info.get('size', 0)
+                    },
+                    "timestamp": datetime.now().isoformat()
+                }
+            else:
+                return {
+                    "commandId": command_id,
+                    "success": False,
+                    "message": "Database update failed",
+                    "timestamp": datetime.now().isoformat()
+                }
+
+        except Exception as e:
+            self.logger.error(f"Update error: {e}")
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": f"Update failed: {str(e)}",
                 "timestamp": datetime.now().isoformat()
             }
 

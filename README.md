@@ -6,9 +6,10 @@ Built in partnership between human vision and AI capability.
 
 ## Quick Start
 
-1. **Open Synthesis.Pro**: Unity Menu → Window → Synthesis → Synthesis Pro  
-2. **Connect**: WebSocket server starts automatically  
-3. **Use**: Chat, Search, and manage your private knowledge base
+1. **Open Synthesis.Pro**: Unity Menu → Window → Synthesis → Synthesis Pro
+2. **Auto-Setup**: Public database downloads automatically on first launch
+3. **Connect**: WebSocket server starts automatically
+4. **Use**: Chat, Search, and manage your private knowledge base
 
 ## Key Features
 
@@ -26,6 +27,31 @@ Two separate databases maintain clear boundaries:
 - `synthesis_private.db` - Private: Your project, AI notes (confidential)
 
 **Safety First**: All data defaults to private to prevent accidental leaks.
+
+## Database Management
+
+Synthesis.Pro automatically manages your databases:
+
+### Automatic Updates
+- **First Launch**: Public database downloads automatically with Unity docs
+- **Update Checks**: Server checks for database updates on startup
+- **One-Click Updates**: Update from Unity menu or run `python database_manager.py --update`
+- **Private Database**: Created empty, populated as you work (never distributed)
+
+### Manual Management
+```bash
+# Check database status
+python database_manager.py --check
+
+# Update to latest version
+python database_manager.py --update
+
+# Verify database integrity
+python database_manager.py --verify
+
+# View contribution guidelines
+python database_manager.py --contribute
+```
 
 ## Why It's Affordable
 

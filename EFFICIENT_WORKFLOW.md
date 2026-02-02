@@ -189,6 +189,32 @@ This workflow treats the AI as a **partner with memory**, not a stateless tool:
 - Patterns emerge and compound over time
 - Each session is more efficient than the last
 
+## Database Management
+
+Synthesis.Pro automatically manages your knowledge bases:
+
+### First Launch
+- Public database downloads automatically with Unity API docs
+- No manual setup required
+- Server checks for updates on startup
+
+### Keeping Updated
+```bash
+# Check for updates
+python database_manager.py --check
+
+# Update to latest Unity docs
+python database_manager.py --update
+
+# Verify database integrity
+python database_manager.py --verify
+```
+
+### From Unity
+- Check for updates: Window → Synthesis → Check for Updates
+- Update database: One-click update from menu
+- Automatic notification when updates available
+
 ## Quick Reference
 
 | Action | Command | Cost |
@@ -198,6 +224,8 @@ This workflow treats the AI as a **partner with memory**, not a stateless tool:
 | Quick note | `rag.quick_note("...")` | ~50 tokens |
 | Log decision | `rag.log_decision(...)` | ~100 tokens |
 | Query status | Search RAG for "status" | ~200 tokens |
+| Check DB updates | `python database_manager.py --check` | 0 tokens (offline) |
+| Update public DB | `python database_manager.py --update` | 0 tokens (offline) |
 
 ---
 
