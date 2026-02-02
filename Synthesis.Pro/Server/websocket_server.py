@@ -99,6 +99,7 @@ class SynthesisWebSocketServer:
         self.register_handler("clear_private_db", self._handle_clear_private_db)
         self.register_handler("restore_private_db", self._handle_restore_private_db)
         self.register_handler("list_backups", self._handle_list_backups)
+        self.register_handler("audit_public_db", self._handle_audit_public_db)
 
     def register_handler(self, command_type: str, handler: Callable):
         """
@@ -687,6 +688,50 @@ class SynthesisWebSocketServer:
                 "commandId": command_id,
                 "success": False,
                 "message": f"List backups failed: {str(e)}",
+                "timestamp": datetime.now().isoformat()
+            }
+
+    async def _handle_audit_public_db(self, command_id: str, parameters: dict) -> dict:
+        """
+        Handle public database audit command
+
+        Scans the public database for potentially sensitive content that
+        should not be shared publicly.
+
+        Returns audit results with flagged entries.
+        """
+        if not self.rag:
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": "RAG engine not available",
+                "timestamp": datetime.now().isoformat()
+            }
+
+        try:
+            # Run audit
+            audit_results = self.rag.audit_public_database()
+
+            # Log results
+            if audit_results["passed"]:
+                self.logger.info(f"Public database audit PASSED: {audit_results['total_documents']} documents scanned")
+            else:
+                self.logger.warning(f"Public database audit FAILED: {audit_results['flagged_count']} suspicious entries found")
+
+            return {
+                "commandId": command_id,
+                "success": True,
+                "message": f"Audit complete: {audit_results['flagged_count']} potential issues found",
+                "data": audit_results,
+                "timestamp": datetime.now().isoformat()
+            }
+
+        except Exception as e:
+            self.logger.error(f"Audit error: {e}")
+            return {
+                "commandId": command_id,
+                "success": False,
+                "message": f"Audit failed: {str(e)}",
                 "timestamp": datetime.now().isoformat()
             }
 

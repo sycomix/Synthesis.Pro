@@ -9,41 +9,35 @@ namespace Synthesis.Editor
     /// </summary>
     public static class SynthesisMenu
     {
-        [MenuItem("Synthesis/Restart MCP Servers", false, 150)]
-        public static void RestartMCPServers()
+        [MenuItem("Synthesis/Restart WebSocket Server", false, 150)]
+        public static void RestartWebSocketServer()
         {
-            Debug.Log("[Synthesis] Restarting MCP servers...");
-            
-            // Stop servers
-            SynLinkEditor.StopHTTPServer();
+            Debug.Log("[Synthesis] Restarting WebSocket server...");
+
+            // Stop server
             SynLinkWebSocket.StopWebSocketServer();
-            
-            // Wait a moment for ports to be released
+
+            // Wait a moment for port to be released
             System.Threading.Thread.Sleep(500);
-            
-            // Restart servers
-            SynLinkEditor.StartHTTPServer();
+
+            // Restart server
             SynLinkWebSocket.StartWebSocketServer();
-            
+
             int wsPort = SynLinkWebSocket.GetActualPort();
-            EditorUtility.DisplayDialog("MCP Servers Restarted",
-                "SynLink HTTP and WebSocket servers have been restarted.\n\n" +
-                "Servers should now be available on:\n" +
-                "• HTTP: localhost:9765\n" +
-                $"• WebSocket: localhost:{wsPort}",
+            EditorUtility.DisplayDialog("WebSocket Server Restarted",
+                "Synthesis.Pro WebSocket server has been restarted.\n\n" +
+                $"Server available on: localhost:{wsPort}",
                 "OK");
         }
-        
-        [MenuItem("Synthesis/Check MCP Server Status", false, 151)]
-        public static void CheckMCPServerStatus()
+
+        [MenuItem("Synthesis/Check Server Status", false, 151)]
+        public static void CheckServerStatus()
         {
-            bool httpRunning = SynLinkEditor.IsConnected();
             bool wsRunning = SynLinkWebSocket.IsRunning();
             int wsPort = SynLinkWebSocket.GetActualPort();
 
-            string message = "MCP Server Status:\n\n";
-            message += (httpRunning ? "✅" : "❌") + " HTTP Server (port 9765)\n";
-            message += (wsRunning ? "✅" : "❌") + $" WebSocket Server (port {wsPort})\n\n";
+            string message = "Synthesis.Pro Server Status:\n\n";
+            message += (wsRunning ? "[OK]" : "[ERROR]") + $" WebSocket Server (port {wsPort})\n\n";
             
             if (httpRunning && wsRunning)
             {
