@@ -14,15 +14,13 @@ namespace Synthesis.Editor
     public static class SynthesisChatWatcher
     {
         private static Process watcherProcess;
-        private static bool isWatcherRunning = false;
         private static readonly string pythonPath;
         private static readonly string watcherScriptPath;
         
         static SynthesisChatWatcher()
         {
             // Setup paths
-            string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
-            pythonPath = Path.Combine(projectRoot, "KnowledgeBase", "python", "python.exe");
+            pythonPath = Path.Combine(Application.dataPath, "Synthesis_AI", "KnowledgeBase", "python", "python.exe");
             watcherScriptPath = Path.Combine(Application.dataPath, "Synthesis_AI", "chat_watcher.py");
             
             // Start watcher automatically when Unity opens
@@ -74,12 +72,12 @@ namespace Synthesis.Editor
             if (!File.Exists(pythonPath))
             {
                 UnityEngine.Debug.LogError($"[Synthesis] Python not found at: {pythonPath}\n" +
-                    "Please run KnowledgeBase/setup_kb.bat first");
-                
+                    "Please run Assets/Synthesis_AI/KnowledgeBase/setup_kb.bat first");
+
                 EditorUtility.DisplayDialog(
                     "Python Not Found",
                     "Chat Watcher requires Python from the Knowledge Base.\n\n" +
-                    "Please run: KnowledgeBase/setup_kb.bat\n\n" +
+                    "Please run: Assets/Synthesis_AI/KnowledgeBase/setup_kb.bat\n\n" +
                     "This will install embedded Python (no system install needed).",
                     "OK"
                 );
@@ -129,9 +127,7 @@ namespace Synthesis.Editor
                 watcherProcess.Start();
                 watcherProcess.BeginOutputReadLine();
                 watcherProcess.BeginErrorReadLine();
-                
-                isWatcherRunning = true;
-                
+
                 UnityEngine.Debug.Log("[Synthesis] ✅ Chat Watcher started automatically!");
                 UnityEngine.Debug.Log("[Synthesis] AI will be notified when you send chat messages");
             }
@@ -155,8 +151,7 @@ namespace Synthesis.Editor
                 
                 watcherProcess.Dispose();
                 watcherProcess = null;
-                isWatcherRunning = false;
-                
+
                 UnityEngine.Debug.Log("[Synthesis] Chat Watcher stopped");
             }
             catch (Exception e)

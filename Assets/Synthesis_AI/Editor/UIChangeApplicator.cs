@@ -161,7 +161,7 @@ namespace Synthesis.Editor
             string[] parts = path.Split('/');
             string objectName = parts[parts.Length - 1];
 
-            GameObject[] allObjects = GameObject.FindObjectsOfType<GameObject>(true); // Include inactive
+            GameObject[] allObjects = GameObject.FindObjectsByType<GameObject>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             foreach (var obj in allObjects)
             {
                 if (obj.name == objectName)

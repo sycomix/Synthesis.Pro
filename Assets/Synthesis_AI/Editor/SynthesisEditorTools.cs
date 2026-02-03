@@ -18,7 +18,7 @@ namespace Synthesis.Editor
         public static void AddSynLinkToScene()
         {
             // Check if SynLink already exists
-            var existing = GameObject.FindObjectOfType<SynLink>();
+            var existing = GameObject.FindFirstObjectByType<SynLink>();
             if (existing != null)
             {
                 EditorUtility.DisplayDialog(
@@ -64,7 +64,7 @@ namespace Synthesis.Editor
         public static void AddSynLinkExtendedToScene()
         {
             // Check if SynLinkExtended already exists
-            var existing = GameObject.FindObjectOfType<SynLinkExtended>();
+            var existing = GameObject.FindFirstObjectByType<SynLinkExtended>();
             if (existing != null)
             {
                 EditorUtility.DisplayDialog(
@@ -191,7 +191,7 @@ namespace Synthesis.Editor
             }
             
             // Test file-based bridge
-            var runtimeBridge = GameObject.FindObjectOfType<SynLink>();
+            var runtimeBridge = GameObject.FindFirstObjectByType<SynLink>();
             bool runtimeExists = runtimeBridge != null;
             
             // Show status
