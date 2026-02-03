@@ -481,7 +481,7 @@ namespace Synthesis.Editor
                         if (processPath.Contains("Synthesis.Pro") || processPath.Contains("Synthesis_AI"))
                         {
                             Debug.Log($"[Synthesis] Killing Pythonw process: {process.Id} ({processPath})");
-                            process.Kill(true);
+                            process.Kill();
                             killedCount++;
                         }
                     }
