@@ -280,9 +280,75 @@ namespace Synthesis.Bridge
         }
         
         #endregion
-        
+
         #region Command Implementations
-        
+
+        /// <summary>
+        /// Helper method to safely get a required parameter with proper error handling
+        /// </summary>
+        private bool TryGetParameter<T>(BridgeCommand cmd, string paramName, out T value, out BridgeResult errorResult)
+        {
+            errorResult = null;
+            value = default(T);
+
+            if (cmd.parameters == null)
+            {
+                errorResult = new BridgeResult
+                {
+                    commandId = cmd.id,
+                    success = false,
+                    message = "Command parameters are null"
+                };
+                return false;
+            }
+
+            var rawValue = cmd.parameters.GetValueOrDefault(paramName);
+            if (rawValue == null)
+            {
+                errorResult = new BridgeResult
+                {
+                    commandId = cmd.id,
+                    success = false,
+                    message = $"Missing required parameter: '{paramName}'"
+                };
+                return false;
+            }
+
+            try
+            {
+                if (typeof(T) == typeof(string))
+                {
+                    var strValue = rawValue.ToString();
+                    if (string.IsNullOrEmpty(strValue))
+                    {
+                        errorResult = new BridgeResult
+                        {
+                            commandId = cmd.id,
+                            success = false,
+                            message = $"Parameter '{paramName}' is empty"
+                        };
+                        return false;
+                    }
+                    value = (T)(object)strValue;
+                }
+                else
+                {
+                    value = (T)System.Convert.ChangeType(rawValue, typeof(T));
+                }
+                return true;
+            }
+            catch (System.Exception e)
+            {
+                errorResult = new BridgeResult
+                {
+                    commandId = cmd.id,
+                    success = false,
+                    message = $"Failed to convert parameter '{paramName}': {e.Message}"
+                };
+                return false;
+            }
+        }
+
         private BridgeResult GetSceneInfo(BridgeCommand cmd)
         {
             var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
@@ -307,8 +373,18 @@ namespace Synthesis.Bridge
         
         private BridgeResult FindGameObjectCommand(BridgeCommand cmd)
         {
-            string name = cmd.parameters?.GetValueOrDefault("name")?.ToString();
-            
+            if (cmd.parameters == null)
+            {
+                return new BridgeResult
+                {
+                    commandId = cmd.id,
+                    success = false,
+                    message = "Command parameters are null"
+                };
+            }
+
+            string name = cmd.parameters.GetValueOrDefault("name")?.ToString();
+
             if (string.IsNullOrEmpty(name))
             {
                 return new BridgeResult
@@ -350,8 +426,18 @@ namespace Synthesis.Bridge
         
         private BridgeResult GetComponentCommand(BridgeCommand cmd)
         {
-            string objectName = cmd.parameters?.GetValueOrDefault("object")?.ToString();
-            string componentType = cmd.parameters?.GetValueOrDefault("component")?.ToString();
+            if (cmd.parameters == null)
+            {
+                return new BridgeResult
+                {
+                    commandId = cmd.id,
+                    success = false,
+                    message = "Command parameters are null"
+                };
+            }
+
+            string objectName = cmd.parameters.GetValueOrDefault("object")?.ToString();
+            string componentType = cmd.parameters.GetValueOrDefault("component")?.ToString();
             
             GameObject go = GameObject.Find(objectName);
             if (go == null)
@@ -389,10 +475,20 @@ namespace Synthesis.Bridge
         
         private BridgeResult SetComponentValueCommand(BridgeCommand cmd)
         {
-            string objectName = cmd.parameters?.GetValueOrDefault("object")?.ToString();
-            string componentType = cmd.parameters?.GetValueOrDefault("component")?.ToString();
-            string fieldName = cmd.parameters?.GetValueOrDefault("field")?.ToString();
-            object value = cmd.parameters?.GetValueOrDefault("value");
+            if (cmd.parameters == null)
+            {
+                return new BridgeResult
+                {
+                    commandId = cmd.id,
+                    success = false,
+                    message = "Command parameters are null"
+                };
+            }
+
+            string objectName = cmd.parameters.GetValueOrDefault("object")?.ToString();
+            string componentType = cmd.parameters.GetValueOrDefault("component")?.ToString();
+            string fieldName = cmd.parameters.GetValueOrDefault("field")?.ToString();
+            object value = cmd.parameters.GetValueOrDefault("value");
             
             GameObject go = GameObject.Find(objectName);
             if (go == null)
@@ -473,8 +569,18 @@ namespace Synthesis.Bridge
         
         private BridgeResult SetPositionCommand(BridgeCommand cmd)
         {
-            string objectName = cmd.parameters?.GetValueOrDefault("object")?.ToString();
-            object positionValue = cmd.parameters?.GetValueOrDefault("position");
+            if (cmd.parameters == null)
+            {
+                return new BridgeResult
+                {
+                    commandId = cmd.id,
+                    success = false,
+                    message = "Command parameters are null"
+                };
+            }
+
+            string objectName = cmd.parameters.GetValueOrDefault("object")?.ToString();
+            object positionValue = cmd.parameters.GetValueOrDefault("position");
             
             GameObject go = GameObject.Find(objectName);
             if (go == null)
@@ -504,8 +610,18 @@ namespace Synthesis.Bridge
         
         private BridgeResult SetActiveCommand(BridgeCommand cmd)
         {
-            string objectName = cmd.parameters?.GetValueOrDefault("object")?.ToString();
-            bool active = cmd.parameters?.GetValueOrDefault("active")?.ToString() == "true";
+            if (cmd.parameters == null)
+            {
+                return new BridgeResult
+                {
+                    commandId = cmd.id,
+                    success = false,
+                    message = "Command parameters are null"
+                };
+            }
+
+            string objectName = cmd.parameters.GetValueOrDefault("object")?.ToString();
+            bool active = cmd.parameters.GetValueOrDefault("active")?.ToString() == "true";
             
             GameObject go = GameObject.Find(objectName);
             if (go == null)
@@ -530,11 +646,21 @@ namespace Synthesis.Bridge
         
         private BridgeResult MoveGameObjectCommand(BridgeCommand cmd)
         {
-            string objectName = cmd.parameters?.GetValueOrDefault("object")?.ToString();
-            float x = System.Convert.ToSingle(cmd.parameters?.GetValueOrDefault("x") ?? 0);
-            float y = System.Convert.ToSingle(cmd.parameters?.GetValueOrDefault("y") ?? 0);
-            float z = System.Convert.ToSingle(cmd.parameters?.GetValueOrDefault("z") ?? 0);
-            bool recordChange = cmd.parameters?.GetValueOrDefault("record")?.ToString() == "true";
+            if (cmd.parameters == null)
+            {
+                return new BridgeResult
+                {
+                    commandId = cmd.id,
+                    success = false,
+                    message = "Command parameters are null"
+                };
+            }
+
+            string objectName = cmd.parameters.GetValueOrDefault("object")?.ToString();
+            float x = System.Convert.ToSingle(cmd.parameters.GetValueOrDefault("x") ?? 0);
+            float y = System.Convert.ToSingle(cmd.parameters.GetValueOrDefault("y") ?? 0);
+            float z = System.Convert.ToSingle(cmd.parameters.GetValueOrDefault("z") ?? 0);
+            bool recordChange = cmd.parameters.GetValueOrDefault("record")?.ToString() == "true";
             
             GameObject go = GameObject.Find(objectName);
             if (go == null)
@@ -583,10 +709,20 @@ namespace Synthesis.Bridge
                 };
             }
 
-            string objectName = cmd.parameters?.GetValueOrDefault("object")?.ToString();
-            string componentType = cmd.parameters?.GetValueOrDefault("component")?.ToString();
-            string fieldName = cmd.parameters?.GetValueOrDefault("field")?.ToString();
-            object value = cmd.parameters?.GetValueOrDefault("value");
+            if (cmd.parameters == null)
+            {
+                return new BridgeResult
+                {
+                    commandId = cmd.id,
+                    success = false,
+                    message = "Command parameters are null"
+                };
+            }
+
+            string objectName = cmd.parameters.GetValueOrDefault("object")?.ToString();
+            string componentType = cmd.parameters.GetValueOrDefault("component")?.ToString();
+            string fieldName = cmd.parameters.GetValueOrDefault("field")?.ToString();
+            object value = cmd.parameters.GetValueOrDefault("value");
 
             GameObject go = GameObject.Find(objectName);
             if (go == null)

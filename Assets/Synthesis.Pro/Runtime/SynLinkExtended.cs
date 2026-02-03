@@ -204,8 +204,16 @@ namespace Synthesis.Bridge
             try
             {
                 response = JObject.Parse(request.downloadHandler.text);
+
+                // Explicitly check if "data" field exists before casting
+                if (response["data"] == null)
+                {
+                    SendResult(commandId, false, "API response missing 'data' field");
+                    yield break;
+                }
+
                 dataArray = (JArray)response["data"];
-                
+
                 if (dataArray == null || dataArray.Count == 0)
                 {
                     SendResult(commandId, false, "No images returned from API");

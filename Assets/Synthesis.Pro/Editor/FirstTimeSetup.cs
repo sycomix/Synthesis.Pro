@@ -180,15 +180,53 @@ namespace Synthesis.Editor
 
         private static void CreateMinimalDatabases(string privateDbPath, string publicDbPath)
         {
-            // Create empty SQLite databases with basic tables
-            // This is a fallback if Python isn't available yet
+            // Create minimal SQLite database files with proper format
+            // This is a fallback if Python init script isn't available
 
-            Debug.Log("[Synthesis] Creating minimal database structures");
+            Debug.Log("[Synthesis] Creating minimal SQLite database structures");
 
-            // For now, just create empty files
-            // The Python scripts will create proper schema on first use
-            File.WriteAllText(privateDbPath, "");
-            File.WriteAllText(publicDbPath, "");
+            // SQLite database file header (first 16 bytes)
+            // "SQLite format 3\0" followed by page size and other metadata
+            byte[] sqliteHeader = new byte[]
+            {
+                0x53, 0x51, 0x4C, 0x69, 0x74, 0x65, 0x20, 0x66,  // "SQLite f"
+                0x6F, 0x72, 0x6D, 0x61, 0x74, 0x20, 0x33, 0x00,  // "ormat 3\0"
+                0x10, 0x00, // Page size = 4096 (0x1000)
+                0x01, // File format write version
+                0x01, // File format read version
+                0x00, // Reserved space at end of each page
+                0x40, // Maximum embedded payload fraction (64)
+                0x20, // Minimum embedded payload fraction (32)
+                0x20, // Leaf payload fraction (32)
+                0x00, 0x00, 0x00, 0x00, // File change counter
+                0x00, 0x00, 0x00, 0x00, // Size of database in pages
+                0x00, 0x00, 0x00, 0x00, // First freelist trunk page
+                0x00, 0x00, 0x00, 0x00, // Total number of freelist pages
+                0x00, 0x00, 0x00, 0x00, // Schema cookie
+                0x00, 0x00, 0x00, 0x04, // Schema format number (4)
+                0x00, 0x00, 0x10, 0x00, // Default page cache size
+                0x00, 0x00, 0x00, 0x00, // Largest root btree page
+                0x00, 0x00, 0x00, 0x01, // Text encoding (1 = UTF-8)
+                0x00, 0x00, 0x00, 0x00, // User version
+                0x00, 0x00, 0x00, 0x00, // Incremental vacuum mode
+                0x00, 0x00, 0x00, 0x00, // Application ID
+                // Reserved space (20 bytes of zeros)
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, // Version-valid-for number
+                0x00, 0x2E, 0x33, 0x38  // SQLite version number (encoded)
+            };
+
+            // Create a minimal valid SQLite file (4096 bytes - one page)
+            byte[] minimalDb = new byte[4096];
+            System.Array.Copy(sqliteHeader, minimalDb, sqliteHeader.Length);
+
+            // Write the minimal databases
+            File.WriteAllBytes(privateDbPath, minimalDb);
+            File.WriteAllBytes(publicDbPath, minimalDb);
+
+            Debug.Log("[Synthesis] Minimal SQLite databases created");
         }
 
         private static async Task DownloadPythonRuntime()
