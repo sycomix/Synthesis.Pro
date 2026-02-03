@@ -58,7 +58,7 @@ namespace Synthesis.Editor
             SetupAsync();
         }
 
-        [MenuItem("Synthesis/Setup/First Time Setup", false, 100)]
+        [MenuItem("Tools/Synthesis/Setup/First Time Setup", false, 100)]
         public static void ManualSetup()
         {
             SetupAsync();
@@ -363,7 +363,7 @@ namespace Synthesis.Editor
             // This will be expanded with actual initial content
         }
 
-        [MenuItem("Synthesis/Setup/Reset Setup", false, 101)]
+        [MenuItem("Tools/Synthesis/Setup/Reset Setup", false, 101)]
         public static void ResetSetup()
         {
             bool confirm = EditorUtility.DisplayDialog(

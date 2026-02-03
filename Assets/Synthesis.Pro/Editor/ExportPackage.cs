@@ -10,7 +10,7 @@ namespace Synthesis.Editor
     /// </summary>
     public static class ExportPackage
     {
-        [MenuItem("Synthesis/Export Package")]
+        [MenuItem("Tools/Synthesis/Export Package")]
         public static void Export()
         {
             string packageName = "Synthesis.Pro.unitypackage";

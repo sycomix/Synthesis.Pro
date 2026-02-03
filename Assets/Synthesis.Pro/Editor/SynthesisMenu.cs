@@ -9,7 +9,7 @@ namespace Synthesis.Editor
     /// </summary>
     public static class SynthesisMenu
     {
-        [MenuItem("Synthesis/Restart MCP Servers", false, 150)]
+        [MenuItem("Tools/Synthesis/Restart MCP Servers", false, 150)]
         public static void RestartMCPServers()
         {
             Debug.Log("[Synthesis] Restarting MCP servers...");
@@ -34,7 +34,7 @@ namespace Synthesis.Editor
                 "OK");
         }
         
-        [MenuItem("Synthesis/Check MCP Server Status", false, 151)]
+        [MenuItem("Tools/Synthesis/Check MCP Server Status", false, 151)]
         public static void CheckMCPServerStatus()
         {
             bool httpRunning = SynLinkEditor.IsConnected();

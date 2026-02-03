@@ -12,7 +12,7 @@ Built in partnership between human vision and AI capability.
 
 ## Quick Start
 
-1. **Open Synthesis.Pro**: Unity Menu → Window → Synthesis → Synthesis Pro
+1. **Open Synthesis.Pro**: Unity Menu → Tools → Synthesis → Synthesis Pro
 2. **Auto-Setup**: Public database downloads automatically on first launch
 3. **Connect**: WebSocket server starts automatically
 4. **Use**: Chat, Search, and manage your private knowledge base

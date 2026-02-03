@@ -12,7 +12,7 @@ namespace Synthesis.Editor
     /// </summary>
     public static class SynthesisEditorTools
     {
-        private const string MenuRoot = "Synthesis/";
+        private const string MenuRoot = "Tools/Synthesis/";
         
         #region Scene Setup
         

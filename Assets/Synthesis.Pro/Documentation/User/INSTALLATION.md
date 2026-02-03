@@ -89,7 +89,7 @@ After installing, verify everything works:
 - Search for `Synthesis` component (Add Component window)
 
 ### **2. Check Menu Items**
-- `Synthesis → Apply Recorded Changes` should appear in menu
+- `Tools → Synthesis → Apply Recorded Changes` should appear in menu
 
 ### **3. Test Component**
 - Create new GameObject

@@ -15,7 +15,7 @@ namespace Synthesis.Editor
         private const string SYNC_URL = "https://fallen-entertainment.github.io/Synthesis.Pro/api/sync";
         private const string LAST_SYNC_KEY = "Synthesis.LastPublicSync";
 
-        [MenuItem("Synthesis/Data Management/Sync Public Knowledge", false, 33)]
+        [MenuItem("Tools/Synthesis/Data Management/Sync Public Knowledge", false, 33)]
         public static void SyncPublicKnowledge()
         {
             bool confirm = EditorUtility.DisplayDialog(
@@ -236,7 +236,7 @@ namespace Synthesis.Editor
             return "1.1.0";
         }
 
-        [MenuItem("Synthesis/Data Management/View Sync Status", false, 34)]
+        [MenuItem("Tools/Synthesis/Data Management/View Sync Status", false, 34)]
         public static void ViewSyncStatus()
         {
             string lastSync = EditorPrefs.GetString(LAST_SYNC_KEY, "Never");
