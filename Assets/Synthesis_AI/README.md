@@ -253,12 +253,14 @@ curl -X POST http://localhost:8765/execute \
 
 Comprehensive guides included in `Documentation` folder:
 
+- **FEATURE_LIST.md** - Complete feature catalog (200+ features!)
 - **QUICK_START.md** - 5-minute setup guide
 - **COMMANDS_REFERENCE.md** - All available commands
 - **KNOWLEDGE_BASE_GUIDE.md** - Using the SQLite knowledge base
 - **INTEGRATION_GUIDE.md** - Integrate with your AI tool
 - **UNITY_BRIDGE_QUICK_REFERENCE.md** - Quick command reference
 - **UNITY_BRIDGE_INTEGRATION_GUIDE.md** - Deep integration guide
+- **DEVELOPER_LOG_GUIDE.md** - Track features and development TODOs
 
 ---
 
