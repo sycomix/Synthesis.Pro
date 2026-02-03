@@ -34,8 +34,10 @@ namespace Synthesis.Editor
             Debug.Log("[Synthesis] Running first-time setup...");
 
             bool shouldSetup = EditorUtility.DisplayDialog(
-                "Welcome to Synthesis.Pro!",
-                "First-time setup required:\n\n" +
+                "Welcome to Synthesis.Pro Beta!",
+                "🚧 BETA - Early Access Release\n" +
+                "We're actively seeking feedback!\n\n" +
+                "First-time setup required:\n" +
                 "• Initialize knowledge base databases\n" +
                 "• Download Python runtime (~50MB)\n" +
                 "• Download AI models (~200MB)\n" +
@@ -98,11 +100,13 @@ namespace Synthesis.Editor
 
                 EditorUtility.DisplayDialog(
                     "Setup Complete!",
-                    "Synthesis.Pro is ready to use!\n\n" +
+                    "Synthesis.Pro Beta is ready to use!\n\n" +
                     "Next steps:\n" +
                     "• Check 'Synthesis > Test Connection'\n" +
                     "• Add SynLink to your scene\n" +
                     "• Start building with AI!\n\n" +
+                    "📢 Beta Feedback:\n" +
+                    "github.com/Fallen-Entertainment/Synthesis.Pro/issues\n\n" +
                     "Documentation: fallen-entertainment.github.io/Synthesis.Pro",
                     "Get Started!"
                 );

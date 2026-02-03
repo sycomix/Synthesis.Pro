@@ -112,7 +112,7 @@ namespace Synthesis.Editor
 
         #region Update
 
-        private const string CURRENT_VERSION = "1.1.0";
+        private const string CURRENT_VERSION = "1.1.0-beta";
         private const string UPDATE_CHECK_URL = "https://fallen-entertainment.github.io/Synthesis.Pro/version.json";
 
         [MenuItem(MenuRoot + "Check for Updates", false, 10)]
@@ -356,7 +356,151 @@ namespace Synthesis.Editor
         }
         
         #endregion
-        
+
+        #region Server Management
+
+        [MenuItem(MenuRoot + "Server/Stop All Servers", false, 25)]
+        public static void StopAllServers()
+        {
+            Debug.Log("[Synthesis] Stopping all servers...");
+
+            int stoppedCount = 0;
+
+            // Stop HTTP Server
+            try
+            {
+                SynLinkEditor.StopHTTPServer();
+                stoppedCount++;
+                Debug.Log("[Synthesis] ✅ HTTP Server stopped");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[Synthesis] Failed to stop HTTP Server: {e.Message}");
+            }
+
+            // Kill all Python processes from Synthesis.Pro
+            try
+            {
+                int pythonProcesses = KillSynthesisPythonProcesses();
+                if (pythonProcesses > 0)
+                {
+                    stoppedCount += pythonProcesses;
+                    Debug.Log($"[Synthesis] ✅ Stopped {pythonProcesses} Python process(es)");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[Synthesis] Failed to stop Python processes: {e.Message}");
+            }
+
+            EditorUtility.DisplayDialog(
+                "Servers Stopped",
+                $"All Synthesis servers have been stopped.\n\n" +
+                $"✅ Stopped {stoppedCount} server(s)\n\n" +
+                $"Safe to export packages or restart Unity.",
+                "OK"
+            );
+
+            Debug.Log($"[Synthesis] ✅ All servers stopped ({stoppedCount} total)");
+        }
+
+        [MenuItem(MenuRoot + "Server/Start All Servers", false, 26)]
+        public static void StartAllServers()
+        {
+            Debug.Log("[Synthesis] Starting all servers...");
+
+            // Start HTTP Server
+            try
+            {
+                SynLinkEditor.StartHTTPServer();
+                Debug.Log("[Synthesis] ✅ HTTP Server started");
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[Synthesis] Failed to start HTTP Server: {e.Message}");
+            }
+
+            EditorUtility.DisplayDialog(
+                "Servers Started",
+                "All Synthesis servers have been started.\n\n" +
+                "✅ HTTP Server running on port 9765\n\n" +
+                "Ready for MCP commands!",
+                "OK"
+            );
+
+            Debug.Log("[Synthesis] ✅ All servers started");
+        }
+
+        [MenuItem(MenuRoot + "Server/Restart All Servers", false, 27)]
+        public static void RestartAllServers()
+        {
+            Debug.Log("[Synthesis] Restarting all servers...");
+
+            StopAllServers();
+            System.Threading.Thread.Sleep(1000); // Give processes time to fully stop
+            StartAllServers();
+
+            Debug.Log("[Synthesis] ✅ All servers restarted");
+        }
+
+        private static int KillSynthesisPythonProcesses()
+        {
+            int killedCount = 0;
+
+            try
+            {
+                var processes = System.Diagnostics.Process.GetProcessesByName("python");
+
+                foreach (var process in processes)
+                {
+                    try
+                    {
+                        // Check if process is from our Synthesis.Pro directory
+                        string processPath = process.MainModule.FileName;
+                        if (processPath.Contains("Synthesis.Pro") || processPath.Contains("Synthesis_AI"))
+                        {
+                            Debug.Log($"[Synthesis] Killing Python process: {process.Id} ({processPath})");
+                            process.Kill(true); // Kill entire process tree
+                            killedCount++;
+                        }
+                    }
+                    catch
+                    {
+                        // Process might not have permission or already exited
+                        continue;
+                    }
+                }
+
+                // Also check for pythonw.exe (windowless Python)
+                var pythonwProcesses = System.Diagnostics.Process.GetProcessesByName("pythonw");
+                foreach (var process in pythonwProcesses)
+                {
+                    try
+                    {
+                        string processPath = process.MainModule.FileName;
+                        if (processPath.Contains("Synthesis.Pro") || processPath.Contains("Synthesis_AI"))
+                        {
+                            Debug.Log($"[Synthesis] Killing Pythonw process: {process.Id} ({processPath})");
+                            process.Kill(true);
+                            killedCount++;
+                        }
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[Synthesis] Error while killing Python processes: {e.Message}");
+            }
+
+            return killedCount;
+        }
+
+        #endregion
+
         #region Documentation
         
         [MenuItem(MenuRoot + "Documentation/Quick Start", false, 40)]

@@ -1,5 +1,11 @@
 # Synthesis.Pro
 
+**🚧 BETA - Early Access Release**
+
+*Current version: 1.1.0-beta - Actively seeking feedback from Unity developers*
+
+---
+
 **AI-Powered Unity Development Assistant with Privacy-First Architecture**
 
 Built in partnership between human vision and AI capability.
