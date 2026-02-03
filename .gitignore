@@ -125,3 +125,14 @@ nul
 /[Aa]ssets/Asset Container.meta
 # But track the README explaining its purpose
 !/[Aa]ssets/Asset Container/README.md
+
+# Synthesis.Pro - Asset Store Compliance
+# Exclude executables for Asset Store submission (keep DLLs as native plugins)
+Assets/Synthesis.Pro/KnowledgeBase/python/python.exe
+Assets/Synthesis.Pro/KnowledgeBase/python/pythonw.exe
+Assets/Synthesis.Pro/Server/node/node.exe
+# All .exe files in pip vendor
+Assets/Synthesis.Pro/KnowledgeBase/python/Lib/site-packages/pip/_vendor/distlib/*.exe
+Assets/Synthesis.Pro/KnowledgeBase/python/Lib/site-packages/setuptools/*.exe
+# PyTorch protoc
+Assets/Synthesis.Pro/KnowledgeBase/python/Lib/site-packages/torch/bin/protoc.exe
