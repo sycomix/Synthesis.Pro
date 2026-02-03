@@ -176,7 +176,9 @@ class SynthesisWebSocketServer:
 
             self.logger.info("✅ RAG engine initialized (dual database mode)")
         except Exception as e:
+            import traceback
             self.logger.error(f"Failed to initialize RAG: {e}")
+            self.logger.error(f"Stack trace: {traceback.format_exc()}")
             self.logger.warning("Server will run without RAG features")
 
     async def _handle_connection(self, websocket: websockets.WebSocketServerProtocol, path: str):
@@ -255,13 +257,17 @@ class SynthesisWebSocketServer:
             self.logger.info(f"✅ Command completed: {command_type}")
 
         except json.JSONDecodeError as e:
-            self.logger.error(f"Invalid JSON: {e}")
+            self.logger.error(f"Invalid JSON from client: {e}")
+            self.logger.error(f"Raw message: {message[:200]}...")
             await self._send_error(websocket, "unknown", "Invalid JSON format")
             self.stats['commands_failed'] += 1
 
         except Exception as e:
+            import traceback
             self.logger.error(f"Error handling message: {e}")
-            await self._send_error(websocket, data.get('id', 'unknown'), str(e))
+            self.logger.error(f"Stack trace: {traceback.format_exc()}")
+            error_id = data.get('id', 'unknown') if isinstance(data, dict) else 'unknown'
+            await self._send_error(websocket, error_id, str(e))
             self.stats['commands_failed'] += 1
 
     async def _send_message(self, websocket: websockets.WebSocketServerProtocol, data: dict):
@@ -276,7 +282,10 @@ class SynthesisWebSocketServer:
             message = json.dumps(data)
             await websocket.send(message)
         except Exception as e:
-            self.logger.error(f"Failed to send message: {e}")
+            import traceback
+            self.logger.error(f"Failed to send message to client: {e}")
+            self.logger.error(f"Message data: {str(data)[:200]}...")
+            self.logger.error(f"Stack trace: {traceback.format_exc()}")
 
     async def _send_error(self, websocket: websockets.WebSocketServerProtocol, command_id: str, error_message: str):
         """

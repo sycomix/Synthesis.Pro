@@ -133,7 +133,8 @@ class SynthesisRAG:
             sqlite_rag = self._get_sqlite_rag_path()
 
             # For large text, use temp file to avoid Windows command line length limit
-            if len(text) > 4000:
+            # Windows CMD has ~8191 char limit total, so use conservative threshold
+            if len(text) > 2000:
                 import tempfile
                 with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', suffix='.txt', delete=False) as f:
                     f.write(text)
@@ -170,9 +171,35 @@ class SynthesisRAG:
                 print(f"Error adding text to {db_type} database: {e.stderr[:200]}")
             return False
         except FileNotFoundError as e:
-            # Handle Windows command line length errors
+            # Handle Windows command line length errors - retry with temp file
             if "206" in str(e) or "filename or extension is too long" in str(e):
-                print(f"Error: Content too large for command line (Windows limit)")
+                print(f"Warning: Hit Windows command line limit, retrying with temp file...")
+                try:
+                    import tempfile
+                    with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', suffix='.txt', delete=False) as f:
+                        f.write(text)
+                        temp_path = f.name
+
+                    try:
+                        result = subprocess.run(
+                            [sqlite_rag, "--database", database, "add", temp_path],
+                            capture_output=True,
+                            text=True,
+                            check=True
+                        )
+                        print(f"Added to {db_type} database: {database}")
+                        return True
+                    finally:
+                        import os
+                        try:
+                            os.unlink(temp_path)
+                        except:
+                            pass
+                except Exception as retry_error:
+                    print(f"Error: Retry failed - {retry_error}")
+                    return False
+            else:
+                print(f"FileNotFoundError: {e}")
             return False
 
     def add_documents(self, paths: List[str], recursive: bool = True, private: bool = True) -> bool:

@@ -46,27 +46,31 @@ class ConversationTracker:
         Returns:
             Success status
         """
-        timestamp = datetime.now().isoformat()
+        try:
+            timestamp = datetime.now().isoformat()
 
-        # Format conversation entry
-        entry = {
-            "timestamp": timestamp,
-            "session_id": self.session_id,
-            "role": role,
-            "message": message
-        }
+            # Format conversation entry
+            entry = {
+                "timestamp": timestamp,
+                "session_id": self.session_id,
+                "role": role,
+                "message": message
+            }
 
-        if context:
-            entry["context"] = context
+            if context:
+                entry["context"] = context
 
-        if metadata:
-            entry["metadata"] = metadata
+            if metadata:
+                entry["metadata"] = metadata
 
-        # Create searchable text for RAG
-        formatted_text = self._format_for_rag(entry)
+            # Create searchable text for RAG
+            formatted_text = self._format_for_rag(entry)
 
-        # Store in PRIVATE database
-        return self.rag.add_text(formatted_text, private=True)
+            # Store in PRIVATE database
+            return self.rag.add_text(formatted_text, private=True)
+        except Exception as e:
+            print(f"Error adding conversation message: {e}")
+            return False
 
     def add_user_message(
         self,
@@ -146,16 +150,20 @@ class ConversationTracker:
         Returns:
             List of relevant conversation entries
         """
-        # Search only in private database
-        results = self.rag.search(query, top_k=top_k, scope="private")
+        try:
+            # Search only in private database
+            results = self.rag.search(query, top_k=top_k, scope="private")
 
-        # Filter for conversation entries
-        conversations = []
-        for result in results:
-            if result['text'].startswith('[CONVERSATION]'):
-                conversations.append(result)
+            # Filter for conversation entries
+            conversations = []
+            for result in results:
+                if result['text'].startswith('[CONVERSATION]'):
+                    conversations.append(result)
 
-        return conversations
+            return conversations
+        except Exception as e:
+            print(f"Error searching conversation history: {e}")
+            return []
 
     def get_recent_context(self, limit: int = 5) -> str:
         """
@@ -201,8 +209,12 @@ class ConversationTracker:
         Returns:
             Success status
         """
-        formatted = f"[LEARNING:{category}] Session: {self.session_id} | {observation}"
-        return self.rag.add_text(formatted, private=True)
+        try:
+            formatted = f"[LEARNING:{category}] Session: {self.session_id} | {observation}"
+            return self.rag.add_text(formatted, private=True)
+        except Exception as e:
+            print(f"Error adding learning: {e}")
+            return False
 
     def add_decision(
         self,
@@ -223,16 +235,20 @@ class ConversationTracker:
         Returns:
             Success status
         """
-        formatted = (
-            f"[DECISION] Session: {self.session_id}\n"
-            f"Decision: {decision}\n"
-            f"Rationale: {rationale}"
-        )
+        try:
+            formatted = (
+                f"[DECISION] Session: {self.session_id}\n"
+                f"Decision: {decision}\n"
+                f"Rationale: {rationale}"
+            )
 
-        if context:
-            formatted += f"\nContext: {json.dumps(context)}"
+            if context:
+                formatted += f"\nContext: {json.dumps(context)}"
 
-        return self.rag.add_text(formatted, private=True)
+            return self.rag.add_text(formatted, private=True)
+        except Exception as e:
+            print(f"Error adding decision: {e}")
+            return False
 
     def _format_for_rag(self, entry: Dict) -> str:
         """
@@ -267,21 +283,28 @@ class ConversationTracker:
         Returns:
             Summary dictionary with session stats
         """
-        results = self.search_conversation_history(
-            f"session:{self.session_id}",
-            top_k=1000  # Get all from this session
-        )
+        try:
+            results = self.search_conversation_history(
+                f"session:{self.session_id}",
+                top_k=1000  # Get all from this session
+            )
 
-        user_messages = [r for r in results if '"role": "user"' in r['text']]
-        assistant_messages = [r for r in results if '"role": "assistant"' in r['text']]
+            user_messages = [r for r in results if '"role": "user"' in r['text']]
+            assistant_messages = [r for r in results if '"role": "assistant"' in r['text']]
 
-        return {
-            "session_id": self.session_id,
-            "total_exchanges": len(user_messages) + len(assistant_messages),
-            "user_messages": len(user_messages),
-            "assistant_messages": len(assistant_messages),
-            "start_time": self.session_id,
-        }
+            return {
+                "session_id": self.session_id,
+                "total_exchanges": len(user_messages) + len(assistant_messages),
+                "user_messages": len(user_messages),
+                "assistant_messages": len(assistant_messages),
+                "start_time": self.session_id,
+            }
+        except Exception as e:
+            print(f"Error getting session summary: {e}")
+            return {
+                "session_id": self.session_id,
+                "error": str(e)
+            }
 
 
 if __name__ == "__main__":
