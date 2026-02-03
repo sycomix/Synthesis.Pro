@@ -131,7 +131,9 @@ namespace Synthesis.Editor
         {
             try
             {
-                string serverDir = "Synthesis.Pro/Server";
+                // Get project root directory (parent of Assets folder)
+                string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+                string serverDir = Path.Combine(projectRoot, "Synthesis.Pro", "Server");
                 string privateDbPath = Path.Combine(serverDir, "synthesis_private.db");
                 string publicDbPath = Path.Combine(serverDir, "synthesis_public.db");
 
@@ -191,7 +193,8 @@ namespace Synthesis.Editor
 
         private static async Task DownloadPythonRuntime()
         {
-            string targetDir = "Synthesis.Pro/Server/python";
+            string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            string targetDir = Path.Combine(projectRoot, "Synthesis.Pro", "Server", "python");
 
             if (Directory.Exists(targetDir) && Directory.GetFiles(targetDir).Length > 0)
             {
@@ -233,7 +236,8 @@ namespace Synthesis.Editor
 
         private static async Task DownloadModels()
         {
-            string targetDir = "Synthesis.Pro/Server/models";
+            string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            string targetDir = Path.Combine(projectRoot, "Synthesis.Pro", "Server", "models");
 
             if (Directory.Exists(targetDir) && Directory.GetFiles(targetDir).Length > 0)
             {
@@ -275,7 +279,8 @@ namespace Synthesis.Editor
 
         private static void InitializePythonEnvironment()
         {
-            string pythonPath = "Synthesis.Pro/Server/python/python.exe";
+            string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            string pythonPath = Path.Combine(projectRoot, "Synthesis.Pro", "Server", "python", "python.exe");
 
             if (!File.Exists(pythonPath))
             {
@@ -306,7 +311,8 @@ namespace Synthesis.Editor
         private static void CreateInitialPublicContent()
         {
             // Create some initial entries in public DB
-            string publicDbPath = "Synthesis.Pro/Server/synthesis_public.db";
+            string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
+            string publicDbPath = Path.Combine(projectRoot, "Synthesis.Pro", "Server", "synthesis_public.db");
 
             if (!File.Exists(publicDbPath))
             {

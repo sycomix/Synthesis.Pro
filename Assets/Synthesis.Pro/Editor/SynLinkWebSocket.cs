@@ -266,9 +266,10 @@ namespace Synthesis.Editor
                 // Stop thread
                 if (listenerThread != null && listenerThread.IsAlive)
                 {
-                    if (!listenerThread.Join(1000))
+                    // Wait for thread to exit gracefully (increased timeout for safety)
+                    if (!listenerThread.Join(3000))
                     {
-                        try { listenerThread.Abort(); } catch { }
+                        Debug.LogWarning("[SynLink WS] Listener thread did not exit within timeout - will exit on next iteration");
                     }
                     listenerThread = null;
                 }

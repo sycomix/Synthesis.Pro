@@ -235,9 +235,9 @@ namespace Synthesis.Runtime
         
         private void OnValidate()
         {
-            // Clamp temperature
-            temperature = Mathf.Clamp(temperature, 0f, 1f);
-            
+            // Clamp temperature to Anthropic API's valid range (0.0 to 2.0)
+            temperature = Mathf.Clamp(temperature, 0f, 2f);
+
             // Clamp max tokens
             maxTokens = Mathf.Max(1, maxTokens);
         }

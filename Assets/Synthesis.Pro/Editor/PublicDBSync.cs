@@ -45,7 +45,8 @@ namespace Synthesis.Editor
 
             try
             {
-                string publicDbPath = "Synthesis.Pro/Server/synthesis_public.db";
+                string projectRoot = Path.GetFullPath(Path.Combine(UnityEngine.Application.dataPath, ".."));
+                string publicDbPath = Path.Combine(projectRoot, "Synthesis.Pro", "Server", "synthesis_public.db");
 
                 if (!File.Exists(publicDbPath))
                 {
@@ -184,7 +185,8 @@ namespace Synthesis.Editor
         {
             try
             {
-                string publicDbPath = "Synthesis.Pro/Server/synthesis_public.db";
+                string projectRoot = Path.GetFullPath(Path.Combine(UnityEngine.Application.dataPath, ".."));
+                string publicDbPath = Path.Combine(projectRoot, "Synthesis.Pro", "Server", "synthesis_public.db");
                 string communityDbPath = publicDbPath + ".community";
 
                 if (!File.Exists(communityDbPath))
@@ -194,7 +196,7 @@ namespace Synthesis.Editor
                 }
 
                 // Run Python merge script
-                string mergeScript = "Synthesis.Pro/Server/merge_public_dbs.py";
+                string mergeScript = Path.Combine(projectRoot, "Synthesis.Pro", "Server", "merge_public_dbs.py");
 
                 if (!File.Exists(mergeScript))
                 {
