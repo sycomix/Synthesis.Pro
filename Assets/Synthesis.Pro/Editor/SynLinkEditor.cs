@@ -429,26 +429,14 @@ namespace Synthesis.Editor
                         resultMessage = "Message logged";
                         break;
                     
+                    // Old chat commands removed - use Chat Archive & Session Memory System instead
                     case "sendchat":
                     case "chatresponse":
-                        var chatMessage = parameters.ContainsKey("message") ? parameters["message"]?.ToString() : 
-                                         cmd.args?["message"]?.ToString() ?? "";
-                        resultData = SendChatMessage(chatMessage);
-                        resultMessage = "Chat message sent";
-                        break;
-                    
                     case "usermessage":
                     case "chatinput":
-                        var userMsg = parameters.ContainsKey("message") ? parameters["message"]?.ToString() : 
-                                     cmd.args?["message"]?.ToString() ?? "";
-                        resultData = ReceiveUserMessage(userMsg);
-                        resultMessage = "User message received";
-                        break;
-                    
                     case "checkmessages":
-                        resultData = CheckChatMessages();
-                        resultMessage = "Checked for new messages";
-                        break;
+                        return new { success = false, message = "In-editor chat deprecated. Use external AI tools with Chat Archive system.", error = "Command deprecated" };
+
 
                     default:
                         return new { success = false, message = $"Unknown command: {commandName}", error = $"Unknown command: {commandName}" };
@@ -644,148 +632,9 @@ namespace Synthesis.Editor
             };
         }
 
-        private static object ReceiveUserMessage(string message)
-        {
-            try
-            {
-                string chatFile = "Assets/Synthesis.Pro/chat_messages.json";
-                
-                // Read existing messages
-                List<Dictionary<string, string>> messages = new List<Dictionary<string, string>>();
-                if (System.IO.File.Exists(chatFile))
-                {
-                    string existingJson = System.IO.File.ReadAllText(chatFile);
-                    if (!string.IsNullOrEmpty(existingJson) && existingJson != "[]")
-                    {
-                        try
-                        {
-                            messages = JsonConvert.DeserializeObject<List<Dictionary<string, string>>>(existingJson) ?? new List<Dictionary<string, string>>();
-                        }
-                        catch
-                        {
-                            // If JSON is corrupted, start fresh
-                            messages = new List<Dictionary<string, string>>();
-                        }
-                    }
-                }
-                
-                // Add new user message
-                messages.Add(new Dictionary<string, string>
-                {
-                    { "sender", "User" },
-                    { "message", message },
-                    { "timestamp", DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss") },
-                    { "source", "WebChat" },
-                    { "unread", "true" }
-                });
-                
-                // Write back to file
-                string json = JsonConvert.SerializeObject(messages, Formatting.Indented);
-                System.IO.File.WriteAllText(chatFile, json);
-                
-                Debug.Log($"[SynLink] 💬 User message received: {message}");
-                
-                return new { received = true, messageCount = messages.Count };
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[SynLink] Failed to save user message: {e.Message}");
-                return new { received = false, error = e.Message };
-            }
-        }
-        
-        private static object SendChatMessage(string message)
-        {
-            bool delivered = false;
-            
-            // Try to send to the editor chat window
-            var chatWindowType = System.Type.GetType("Synthesis.Editor.SynthesisChatWindow, Synthesis.Editor");
-            if (chatWindowType != null)
-            {
-                var method = chatWindowType.GetMethod("ReceiveAIMessage", 
-                    System.Reflection.BindingFlags.Public | 
-                    System.Reflection.BindingFlags.Static);
-                
-                if (method != null)
-                {
-                    method.Invoke(null, new object[] { message });
-                    delivered = true;
-                    Debug.Log($"[SynLink] Message sent to SynthesisChatWindow");
-                }
-            }
-            
-            if (delivered)
-            {
-                return new { delivered = true };
-            }
-            
-            // Fallback: just log it
-            Debug.Log($"[AI] {message}");
-            return new { delivered = false, fallback = "logged to console",
-                        info = "No active chat window found. Open Synthesis → Open Chat Window or use MCP/Discord integration" };
-        }
-        
-        private static object CheckChatMessages()
-        {
-            try
-            {
-                string chatFile = "Assets/Synthesis.Pro/chat_messages.json";
-                
-                if (!System.IO.File.Exists(chatFile))
-                {
-                    return new { hasMessages = false, messages = new object[0] };
-                }
-                
-                string json = System.IO.File.ReadAllText(chatFile);
-                if (string.IsNullOrEmpty(json) || json == "[]")
-                {
-                    return new { hasMessages = false, messages = new object[0] };
-                }
-                
-                // Parse messages
-                var allMessages = JsonConvert.DeserializeObject<List<Dictionary<string, string>>>(json);
-                
-                // Find unread user messages
-                var unreadMessages = new List<object>();
-                bool hasChanges = false;
-                
-                foreach (var msg in allMessages)
-                {
-                    if (msg.ContainsKey("sender") && msg["sender"] == "user" && 
-                        msg.ContainsKey("read") && msg["read"] == "false")
-                    {
-                        unreadMessages.Add(new
-                        {
-                            message = msg.ContainsKey("message") ? msg["message"] : "",
-                            timestamp = msg.ContainsKey("timestamp") ? msg["timestamp"] : ""
-                        });
-                        
-                        // Mark as read
-                        msg["read"] = "true";
-                        hasChanges = true;
-                    }
-                }
-                
-                // Write back if we marked anything as read
-                if (hasChanges)
-                {
-                    string newJson = JsonConvert.SerializeObject(allMessages, Formatting.Indented);
-                    System.IO.File.WriteAllText(chatFile, newJson);
-                }
-                
-                return new
-                {
-                    hasMessages = unreadMessages.Count > 0,
-                    count = unreadMessages.Count,
-                    messages = unreadMessages
-                };
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[SynLink] Error checking chat messages: {e.Message}");
-                return new { hasMessages = false, error = e.Message };
-            }
-        }
+        // Old chat functions removed - replaced by Chat Archive & Session Memory System
+        // The new system archives external AI conversations (Claude Code, etc.) to knowledge_base.db
+        // See: Assets/Synthesis.Pro/.devlog/DEVELOPER_LOG.md - Chat Archive & Session Memory System
 
         private static object BuildHierarchyNode(Transform transform)
         {

@@ -111,49 +111,12 @@ namespace Synthesis.Editor
         
         #region Communication
         
-        [MenuItem(MenuRoot + "Open Chat Window", false, 20)]
-        public static void OpenChatWindow()
-        {
-            // Ensure chat watcher is running
-            SynthesisChatWatcher.EnsureWatcherRunning();
+        // Old in-editor chat window removed - use external AI tools with Chat Archive system
+        // [MenuItem(MenuRoot + "Open Chat Window", false, 20)]
 
-            // Open the IMGUI-based chat window
-            SynthesisChatWindow.OpenChatWindow();
-        }
-        
-        [MenuItem(MenuRoot + "Chat Watcher Status", false, 22)]
-        public static void ChatWatcherStatus()
-        {
-            bool running = SynthesisChatWatcher.IsWatcherRunning();
-            
-            if (running)
-            {
-                EditorUtility.DisplayDialog(
-                    "Chat Watcher Status",
-                    "✅ Chat Watcher is RUNNING\n\n" +
-                    "The AI will be automatically notified when you send chat messages.\n\n" +
-                    "Status: Active and monitoring",
-                    "OK"
-                );
-            }
-            else
-            {
-                bool start = EditorUtility.DisplayDialog(
-                    "Chat Watcher Status",
-                    "❌ Chat Watcher is NOT RUNNING\n\n" +
-                    "The AI won't see your chat messages automatically.\n\n" +
-                    "Would you like to start it now?",
-                    "Start Watcher",
-                    "Cancel"
-                );
-                
-                if (start)
-                {
-                    SynthesisChatWatcher.StartWatcher();
-                }
-            }
-        }
-        
+        // Old chat watcher menu removed - in-editor chat system deprecated
+        // Use external AI tools with Chat Archive & Session Memory System
+
         [MenuItem(MenuRoot + "Restart HTTP Server", false, 23)]
         public static void RestartHTTPServer()
         {

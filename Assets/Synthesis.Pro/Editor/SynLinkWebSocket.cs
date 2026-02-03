@@ -474,20 +474,8 @@ namespace Synthesis.Editor
                     string chatMessage = message.Substring(msgStart, msgEnd - msgStart);
                     
                     Debug.Log($"[💬 USER] {chatMessage}");
-                    
-                    // Notify chat window
-                    var chatWindowType = System.Type.GetType("Synthesis.Editor.SynthesisChatWindow, Synthesis.Editor");
-                    if (chatWindowType != null)
-                    {
-                        var method = chatWindowType.GetMethod("ReceiveUserMessage",
-                            System.Reflection.BindingFlags.Public |
-                            System.Reflection.BindingFlags.Static);
-                        
-                        if (method != null)
-                        {
-                            method.Invoke(null, new object[] { chatMessage });
-                        }
-                    }
+
+                    // Old in-editor chat window removed - message logged only
                 }
             }
             catch (Exception e)
