@@ -3,6 +3,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using Synthesis.Bridge;
 using System.Net.Http;
+using Newtonsoft.Json.Linq;
 
 namespace Synthesis.Editor
 {
@@ -162,34 +163,38 @@ namespace Synthesis.Editor
         {
             try
             {
-                // Simple JSON parsing (can use JsonUtility for more complex cases)
+                // Parse JSON using Newtonsoft.Json for robust handling
+                var jObject = JObject.Parse(json);
                 var data = new System.Collections.Generic.Dictionary<string, string>();
 
-                // Extract version
-                int versionStart = json.IndexOf("\"version\":\"") + 11;
-                int versionEnd = json.IndexOf("\"", versionStart);
-                data["version"] = json.Substring(versionStart, versionEnd - versionStart);
-
-                // Extract URL
-                if (json.Contains("\"url\":\""))
+                // Extract version (required field)
+                if (jObject["version"] != null)
                 {
-                    int urlStart = json.IndexOf("\"url\":\"") + 7;
-                    int urlEnd = json.IndexOf("\"", urlStart);
-                    data["url"] = json.Substring(urlStart, urlEnd - urlStart);
+                    data["version"] = jObject["version"].ToString();
+                }
+                else
+                {
+                    Debug.LogError("[Synthesis] version.json missing 'version' field");
+                    return null;
                 }
 
-                // Extract notes
-                if (json.Contains("\"notes\":\""))
+                // Extract URL (optional field)
+                if (jObject["url"] != null)
                 {
-                    int notesStart = json.IndexOf("\"notes\":\"") + 9;
-                    int notesEnd = json.IndexOf("\"", notesStart);
-                    data["notes"] = json.Substring(notesStart, notesEnd - notesStart);
+                    data["url"] = jObject["url"].ToString();
+                }
+
+                // Extract notes (optional field)
+                if (jObject["notes"] != null)
+                {
+                    data["notes"] = jObject["notes"].ToString();
                 }
 
                 return data;
             }
-            catch
+            catch (System.Exception e)
             {
+                Debug.LogError($"[Synthesis] Failed to parse version.json: {e.Message}");
                 return null;
             }
         }

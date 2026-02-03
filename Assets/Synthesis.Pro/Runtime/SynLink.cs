@@ -875,9 +875,14 @@ namespace Synthesis.Bridge
                     var value = field.GetValue(comp);
                     data[field.Name] = value?.ToString() ?? "null";
                 }
-                catch { }
+                catch (System.Exception e)
+                {
+                    // Some fields may not be accessible - log and skip
+                    Debug.LogWarning($"[SynLink] Could not read field '{field.Name}': {e.Message}");
+                    data[field.Name] = "<error>";
+                }
             }
-            
+
             // Get all public properties
             var properties = comp.GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
             foreach (var property in properties)
@@ -889,7 +894,12 @@ namespace Synthesis.Bridge
                         var value = property.GetValue(comp);
                         data[property.Name] = value?.ToString() ?? "null";
                     }
-                    catch { }
+                    catch (System.Exception e)
+                    {
+                        // Some properties may throw exceptions when accessed - log and skip
+                        Debug.LogWarning($"[SynLink] Could not read property '{property.Name}': {e.Message}");
+                        data[property.Name] = "<error>";
+                    }
                 }
             }
             
@@ -917,12 +927,17 @@ namespace Synthesis.Bridge
         {
             string logEntry = $"[{System.DateTime.Now:HH:mm:ss}] {message}\n";
             Debug.Log($"[SynLink] {message}");
-            
+
+            // Try to write to log file (non-critical, fail silently to avoid recursion)
             try
             {
                 File.AppendAllText(logsFilePath, logEntry);
             }
-            catch { }
+            catch (System.Exception e)
+            {
+                // Can't use Debug.Log here (recursion risk), use Console instead
+                System.Console.WriteLine($"[SynLink] Failed to write log file: {e.Message}");
+            }
         }
         
         #endregion

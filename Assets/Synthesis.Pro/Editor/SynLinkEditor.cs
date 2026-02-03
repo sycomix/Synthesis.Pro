@@ -134,7 +134,10 @@ namespace Synthesis.Editor
                     }
                 }
             }
-            catch { }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"[SynLink] Could not determine process using port {httpPort}: {e.Message}");
+            }
             return "unknown process";
         }
         
@@ -650,7 +653,12 @@ namespace Synthesis.Editor
                 {
                     fields[field.Name] = field.GetValue(component);
                 }
-                catch { }
+                catch (System.Exception e)
+                {
+                    // Some fields may not be accessible - log and skip
+                    Debug.LogWarning($"[SynLink] Could not read field '{field.Name}' on {type.Name}: {e.Message}");
+                    fields[field.Name] = "<error>";
+                }
             }
 
             foreach (var prop in type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
@@ -662,7 +670,12 @@ namespace Synthesis.Editor
                         fields[prop.Name] = prop.GetValue(component);
                     }
                 }
-                catch { }
+                catch (System.Exception e)
+                {
+                    // Some properties may throw exceptions when accessed - log and skip
+                    Debug.LogWarning($"[SynLink] Could not read property '{prop.Name}' on {type.Name}: {e.Message}");
+                    fields[prop.Name] = "<error>";
+                }
             }
 
             return fields;
