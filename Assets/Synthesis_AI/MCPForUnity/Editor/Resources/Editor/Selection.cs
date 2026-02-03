@@ -21,7 +21,9 @@ namespace MCPForUnity.Editor.Resources.Editor
                     activeObject = UnityEditor.Selection.activeObject?.name,
                     activeGameObject = UnityEditor.Selection.activeGameObject?.name,
                     activeTransform = UnityEditor.Selection.activeTransform?.name,
+#pragma warning disable CS0618 // Type or member is obsolete
                     activeInstanceID = UnityEditor.Selection.activeInstanceID,
+#pragma warning restore CS0618
                     count = UnityEditor.Selection.count,
                     objects = UnityEditor.Selection.objects
                         .Select(obj => new

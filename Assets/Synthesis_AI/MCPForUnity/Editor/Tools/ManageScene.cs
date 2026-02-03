@@ -396,8 +396,9 @@ namespace MCPForUnity.Editor.Tools
                     Camera cam = Camera.main;
                     if (cam == null)
                     {
-                        // Use FindObjectsOfType for Unity 2021 compatibility
-                        var cams = UnityEngine.Object.FindObjectsOfType<Camera>();
+                        // Find all cameras in the scene
+                        var cams = UnityEngine.Object.FindObjectsByType<Camera>(FindObjectsSortMode.None);
+
                         cam = cams.FirstOrDefault();
                     }
 
@@ -585,7 +586,9 @@ namespace MCPForUnity.Editor.Tools
                 {
                     if (int.TryParse(targetToken.ToString(), out int id))
                     {
+#pragma warning disable CS0618 // Type or member is obsolete
                         var obj = EditorUtility.InstanceIDToObject(id);
+#pragma warning restore CS0618
                         if (obj is GameObject go) return go;
                         if (obj is Component c) return c.gameObject;
                     }

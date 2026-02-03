@@ -130,7 +130,7 @@ namespace MCPForUnity.Editor.Tools.GameObjects
                         }
                         else
                         {
-                            searchPoolComp = UnityEngine.Object.FindObjectsOfType(componentType, searchInactive)
+                            searchPoolComp = UnityEngine.Object.FindObjectsByType(componentType, searchInactive ? FindObjectsInactive.Include : FindObjectsInactive.Exclude, FindObjectsSortMode.None)
                                 .Cast<Component>()
                                 .Select(c => c.gameObject);
                         }

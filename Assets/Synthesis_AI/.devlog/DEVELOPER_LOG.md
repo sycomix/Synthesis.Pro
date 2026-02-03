@@ -136,7 +136,14 @@
 
 ## ✅ Recently Completed
 
-### 2025-02-02
+### 2025-02-02 - Session 2
+- **Fixed AnthropicAPIClient Warning**: Added `new` keyword to SendMessage to properly hide inherited method
+- **Removed Unused Event**: Deleted OnStreamChunk event that was never used
+- **Suppressed Deprecated API Warnings**: Added pragma directives for InstanceIDToObject and activeInstanceID to maintain compatibility
+- **Fixed FindObjectsOfType Deprecations**: Updated to FindObjectsByType with proper parameters across MCPForUnity
+- **Excluded Scipy Test Data**: Renamed test data folders to data~ so Unity ignores them completely
+
+### 2025-02-02 - Session 1
 - **Fixed Newtonsoft.Json Integration**: Added package and updated all assembly definitions
 - **Fixed Python Path**: Corrected SynthesisChatWatcher to use Assets/Synthesis_AI path
 - **Eliminated Deprecation Warnings**: Updated to FindFirstObjectByType and FindObjectsByType

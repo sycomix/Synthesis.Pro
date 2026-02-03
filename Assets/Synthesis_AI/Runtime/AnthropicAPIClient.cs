@@ -30,7 +30,6 @@ namespace Synthesis.Runtime
         
         // Events
         public event Action<string> OnMessageReceived;
-        public event Action<string> OnStreamChunk;
         public event Action<string> OnError;
         public event Action OnRequestStarted;
         public event Action OnRequestCompleted;
@@ -117,7 +116,7 @@ namespace Synthesis.Runtime
         /// <summary>
         /// Send a message to Claude
         /// </summary>
-        public void SendMessage(string userMessage)
+        public new void SendMessage(string userMessage)
         {
             if (string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(GetAPIKey()))
             {
