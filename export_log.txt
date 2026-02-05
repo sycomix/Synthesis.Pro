@@ -1,0 +1,20 @@
+[Licensing::Module] Trying to connect to existing licensing client channel...
+Built from '6000.3/staging' branch; Version is '6000.3.2f1 (a9779f353c9b) revision 11106207'; Using compiler version '194234433'; Build Type 'Release'
+OS: 'Windows 11  (10.0.22631) 64bit Professional' Language: 'en' Physical Memory: 61333 MB
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
+Date: 2026-02-05T16:42:36Z
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-Fallen" at "2026-02-05T16:42:36.8989744Z"
+
+COMMAND LINE ARGUMENTS:
+C:\Program Files\Unity\Hub\Editor\6000.3.2f1\Editor\Unity.exe
+-quit
+-batchmode
+-projectPath
+.
+-executeMethod
+Synthesis.Editor.ExportPackage.Export
+-logFile
+export_log.txt
+Successfully changed project path to: D:/Unity Projects/Synthesis.Pro
+D:/Unity Projects/Synthesis.Pro
+Exiting without the bug reporter. Application will terminate with return code 1
