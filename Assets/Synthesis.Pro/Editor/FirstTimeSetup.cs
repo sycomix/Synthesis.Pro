@@ -14,9 +14,10 @@ namespace Synthesis.Editor
     public static class FirstTimeSetup
     {
         private const string SETUP_COMPLETE_KEY = "Synthesis.SetupComplete";
-        private const string PYTHON_DOWNLOAD_URL = "https://fallen-entertainment.github.io/Synthesis.Pro/downloads/python-embedded.zip";
-        private const string NODE_DOWNLOAD_URL = "https://fallen-entertainment.github.io/Synthesis.Pro/downloads/node-embedded.zip";
-        private const string MODELS_DOWNLOAD_URL = "https://fallen-entertainment.github.io/Synthesis.Pro/downloads/models.zip";
+        private const string PYTHON_DOWNLOAD_URL = "https://github.com/Fallen-Entertainment/Synthesis.Pro/releases/download/v1.1.0-runtime-deps/python-embedded.zip";
+        private const string NODE_DOWNLOAD_URL = "https://github.com/Fallen-Entertainment/Synthesis.Pro/releases/download/v1.1.0-runtime-deps/node-embedded.zip";
+        private const string MODELS_DOWNLOAD_URL = "https://github.com/Fallen-Entertainment/Synthesis.Pro/releases/download/v1.1.0-runtime-deps/models.zip";
+        private static readonly HttpClient httpClient = new HttpClient();
 
         static FirstTimeSetup()
         {
@@ -57,43 +58,43 @@ namespace Synthesis.Editor
             }
 
             // Run setup steps
-            SetupAsync();
+            _ = SetupAsync(); // Fire and forget with proper error handling inside
         }
 
         [MenuItem("Tools/Synthesis/Setup/First Time Setup", false, 100)]
         public static void ManualSetup()
         {
-            SetupAsync();
+            _ = SetupAsync(); // Fire and forget with proper error handling inside
         }
 
-        private static async void SetupAsync()
+        private static async Task SetupAsync()
         {
             EditorUtility.DisplayProgressBar("Synthesis Setup", "Initializing...", 0.0f);
 
             try
             {
-                // Step 1: Initialize databases
-                EditorUtility.DisplayProgressBar("Synthesis Setup", "Creating databases...", 0.2f);
+                // Step 1: Download Python runtime FIRST
+                EditorUtility.DisplayProgressBar("Synthesis Setup", "Downloading Python runtime...", 0.2f);
+                await DownloadPythonRuntime();
+
+                // Step 2: Download Node.js runtime
+                EditorUtility.DisplayProgressBar("Synthesis Setup", "Downloading Node.js runtime...", 0.3f);
+                await DownloadNodeRuntime();
+
+                // Step 3: Download models
+                EditorUtility.DisplayProgressBar("Synthesis Setup", "Downloading AI models...", 0.5f);
+                await DownloadModels();
+
+                // Step 4: Initialize Python environment
+                EditorUtility.DisplayProgressBar("Synthesis Setup", "Setting up Python environment...", 0.6f);
+                InitializePythonEnvironment();
+
+                // Step 5: Initialize databases (requires Python)
+                EditorUtility.DisplayProgressBar("Synthesis Setup", "Creating databases...", 0.8f);
                 if (!InitializeDatabases())
                 {
                     throw new System.Exception("Failed to initialize databases");
                 }
-
-                // Step 2: Download Python runtime
-                EditorUtility.DisplayProgressBar("Synthesis Setup", "Downloading Python runtime...", 0.3f);
-                await DownloadPythonRuntime();
-
-                // Step 3: Download Node.js runtime
-                EditorUtility.DisplayProgressBar("Synthesis Setup", "Downloading Node.js runtime...", 0.5f);
-                await DownloadNodeRuntime();
-
-                // Step 4: Download models
-                EditorUtility.DisplayProgressBar("Synthesis Setup", "Downloading AI models...", 0.7f);
-                await DownloadModels();
-
-                // Step 5: Initialize Python environment
-                EditorUtility.DisplayProgressBar("Synthesis Setup", "Setting up Python environment...", 0.8f);
-                InitializePythonEnvironment();
 
                 // Step 6: Create initial public DB content
                 EditorUtility.DisplayProgressBar("Synthesis Setup", "Creating initial content...", 0.9f);
@@ -147,7 +148,8 @@ namespace Synthesis.Editor
                 Directory.CreateDirectory(serverDir);
 
                 // Run Python database initialization script
-                string initScript = Path.Combine(serverDir, "init_databases.py");
+                string ragDir = Path.Combine(projectRoot, "Synthesis.Pro", "RAG");
+                string initScript = Path.Combine(ragDir, "init_databases.py");
 
                 if (!File.Exists(initScript))
                 {
@@ -156,16 +158,26 @@ namespace Synthesis.Editor
                     return true;
                 }
 
-                // Run init script
+                // Run init script with embedded Python
+                string pythonExe = Path.Combine(Application.dataPath, "Synthesis.Pro", "KnowledgeBase", "python", "python.exe");
+
                 var process = new System.Diagnostics.Process();
-                process.StartInfo.FileName = "python";
+                // Use embedded Python if available, otherwise fallback to system Python
+                process.StartInfo.FileName = File.Exists(pythonExe) ? pythonExe : "python";
                 process.StartInfo.Arguments = $"\"{initScript}\"";
                 process.StartInfo.UseShellExecute = false;
                 process.StartInfo.RedirectStandardOutput = true;
                 process.StartInfo.RedirectStandardError = true;
                 process.StartInfo.CreateNoWindow = true;
                 process.Start();
-                process.WaitForExit();
+
+                // Wait with timeout (30 seconds for DB init)
+                if (!process.WaitForExit(30000))
+                {
+                    process.Kill();
+                    Debug.LogError("[Synthesis] Database init timed out");
+                    return false;
+                }
 
                 if (process.ExitCode != 0)
                 {
@@ -228,11 +240,27 @@ namespace Synthesis.Editor
             byte[] minimalDb = new byte[4096];
             System.Array.Copy(sqliteHeader, minimalDb, sqliteHeader.Length);
 
-            // Write the minimal databases
-            File.WriteAllBytes(privateDbPath, minimalDb);
-            File.WriteAllBytes(publicDbPath, minimalDb);
+            // Write the minimal databases ONLY if they don't exist
+            // CRITICAL: Never overwrite existing private database - it's sacred!
+            if (!File.Exists(privateDbPath))
+            {
+                File.WriteAllBytes(privateDbPath, minimalDb);
+                Debug.Log("[Synthesis] Created minimal private database");
+            }
+            else
+            {
+                Debug.Log("[Synthesis] Private database already exists - preserving it");
+            }
 
-            Debug.Log("[Synthesis] Minimal SQLite databases created");
+            if (!File.Exists(publicDbPath))
+            {
+                File.WriteAllBytes(publicDbPath, minimalDb);
+                Debug.Log("[Synthesis] Created minimal public database");
+            }
+            else
+            {
+                Debug.Log("[Synthesis] Public database already exists - preserving it");
+            }
         }
 
         private static async Task DownloadPythonRuntime()
@@ -247,35 +275,39 @@ namespace Synthesis.Editor
 
             try
             {
-                using (var client = new HttpClient())
+                // Clean up partial installation if it exists
+                if (Directory.Exists(targetDir))
                 {
-                    client.Timeout = System.TimeSpan.FromMinutes(5);
-
-                    Debug.Log("[Synthesis] Downloading Python runtime...");
-                    var response = await client.GetAsync(PYTHON_DOWNLOAD_URL);
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        throw new System.Exception($"Download failed: {response.StatusCode}");
-                    }
-
-                    string tempDir = Path.Combine(Path.GetTempPath(), "synthesis_python_download");
-                    Directory.CreateDirectory(tempDir);
-                    var zipPath = Path.Combine(tempDir, "python-embedded.zip");
-
-                    using (var fs = new FileStream(zipPath, FileMode.Create))
-                    {
-                        await response.Content.CopyToAsync(fs);
-                    }
-
-                    // Extract zip
-                    Directory.CreateDirectory(targetDir);
-                    System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, targetDir);
-
-                    // Cleanup
-                    Directory.Delete(tempDir, true);
-
-                    Debug.Log($"[Synthesis] Python runtime downloaded to {targetDir}");
+                    Debug.Log("[Synthesis] Cleaning up partial Python installation...");
+                    Directory.Delete(targetDir, true);
                 }
+
+                httpClient.Timeout = System.TimeSpan.FromMinutes(5);
+
+                Debug.Log("[Synthesis] Downloading Python runtime...");
+                var response = await httpClient.GetAsync(PYTHON_DOWNLOAD_URL);
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new System.Exception($"Download failed: {response.StatusCode}");
+                }
+
+                string tempDir = Path.Combine(Path.GetTempPath(), "synthesis_python_download");
+                Directory.CreateDirectory(tempDir);
+                var zipPath = Path.Combine(tempDir, "python-embedded.zip");
+
+                using (var fs = new FileStream(zipPath, FileMode.Create))
+                {
+                    await response.Content.CopyToAsync(fs);
+                }
+
+                // Extract zip
+                Directory.CreateDirectory(targetDir);
+                System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, targetDir);
+
+                // Cleanup
+                Directory.Delete(tempDir, true);
+
+                Debug.Log($"[Synthesis] Python runtime downloaded to {targetDir}");
             }
             catch (System.Exception e)
             {
@@ -296,35 +328,32 @@ namespace Synthesis.Editor
 
             try
             {
-                using (var client = new HttpClient())
+                httpClient.Timeout = System.TimeSpan.FromMinutes(5);
+
+                Debug.Log("[Synthesis] Downloading Node.js runtime...");
+                var response = await httpClient.GetAsync(NODE_DOWNLOAD_URL);
+                if (!response.IsSuccessStatusCode)
                 {
-                    client.Timeout = System.TimeSpan.FromMinutes(5);
-
-                    Debug.Log("[Synthesis] Downloading Node.js runtime...");
-                    var response = await client.GetAsync(NODE_DOWNLOAD_URL);
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        throw new System.Exception($"Download failed: {response.StatusCode}");
-                    }
-
-                    string tempDir = Path.Combine(Path.GetTempPath(), "synthesis_node_download");
-                    Directory.CreateDirectory(tempDir);
-                    var zipPath = Path.Combine(tempDir, "node-embedded.zip");
-
-                    using (var fs = new FileStream(zipPath, FileMode.Create))
-                    {
-                        await response.Content.CopyToAsync(fs);
-                    }
-
-                    // Extract zip
-                    Directory.CreateDirectory(targetDir);
-                    System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, targetDir);
-
-                    // Cleanup
-                    Directory.Delete(tempDir, true);
-
-                    Debug.Log($"[Synthesis] Node.js runtime downloaded to {targetDir}");
+                    throw new System.Exception($"Download failed: {response.StatusCode}");
                 }
+
+                string tempDir = Path.Combine(Path.GetTempPath(), "synthesis_node_download");
+                Directory.CreateDirectory(tempDir);
+                var zipPath = Path.Combine(tempDir, "node-embedded.zip");
+
+                using (var fs = new FileStream(zipPath, FileMode.Create))
+                {
+                    await response.Content.CopyToAsync(fs);
+                }
+
+                // Extract zip
+                Directory.CreateDirectory(targetDir);
+                System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, targetDir);
+
+                // Cleanup
+                Directory.Delete(tempDir, true);
+
+                Debug.Log($"[Synthesis] Node.js runtime downloaded to {targetDir}");
             }
             catch (System.Exception e)
             {
@@ -338,7 +367,9 @@ namespace Synthesis.Editor
             string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
             string targetDir = Path.Combine(projectRoot, "Synthesis.Pro", "Server", "models");
 
-            if (Directory.Exists(targetDir) && Directory.GetFiles(targetDir).Length > 0)
+            // Check for specific model file to verify complete installation
+            string modelFile = Path.Combine(targetDir, "unsloth", "embeddinggemma-300m-GGUF", "embeddinggemma-300M-Q8_0.gguf");
+            if (File.Exists(modelFile))
             {
                 Debug.Log("[Synthesis] Models already exist");
                 return;
@@ -346,29 +377,33 @@ namespace Synthesis.Editor
 
             try
             {
-                using (var client = new HttpClient())
+                // Clean up partial installation
+                if (Directory.Exists(targetDir))
                 {
-                    client.Timeout = System.TimeSpan.FromMinutes(10);
-
-                    var response = await client.GetAsync(MODELS_DOWNLOAD_URL);
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        throw new System.Exception($"Download failed: {response.StatusCode}");
-                    }
-
-                    var zipPath = "models.zip";
-                    using (var fs = new FileStream(zipPath, FileMode.Create))
-                    {
-                        await response.Content.CopyToAsync(fs);
-                    }
-
-                    // Extract zip
-                    Directory.CreateDirectory(targetDir);
-                    System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, targetDir);
-                    File.Delete(zipPath);
-
-                    Debug.Log("[Synthesis] Models downloaded");
+                    Debug.Log("[Synthesis] Cleaning up partial models installation...");
+                    Directory.Delete(targetDir, true);
                 }
+
+                httpClient.Timeout = System.TimeSpan.FromMinutes(10);
+
+                var response = await httpClient.GetAsync(MODELS_DOWNLOAD_URL);
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new System.Exception($"Download failed: {response.StatusCode}");
+                }
+
+                var zipPath = "models.zip";
+                using (var fs = new FileStream(zipPath, FileMode.Create))
+                {
+                    await response.Content.CopyToAsync(fs);
+                }
+
+                // Extract zip
+                Directory.CreateDirectory(targetDir);
+                System.IO.Compression.ZipFile.ExtractToDirectory(zipPath, targetDir);
+                File.Delete(zipPath);
+
+                Debug.Log("[Synthesis] Models downloaded");
             }
             catch (System.Exception e)
             {
@@ -388,6 +423,26 @@ namespace Synthesis.Editor
 
             try
             {
+                // Bootstrap pip for embedded Python
+                Debug.Log("[Synthesis] Bootstrapping pip...");
+                var getPipProcess = new System.Diagnostics.Process();
+                getPipProcess.StartInfo.FileName = pythonPath;
+                getPipProcess.StartInfo.Arguments = "-m ensurepip --default-pip";
+                getPipProcess.StartInfo.UseShellExecute = false;
+                getPipProcess.StartInfo.RedirectStandardOutput = true;
+                getPipProcess.StartInfo.RedirectStandardError = true;
+                getPipProcess.StartInfo.CreateNoWindow = true;
+                getPipProcess.Start();
+                getPipProcess.WaitForExit(60000); // 1 minute timeout
+
+                if (getPipProcess.ExitCode != 0)
+                {
+                    Debug.LogWarning("[Synthesis] Could not bootstrap pip - embedded Python may not support it. Skipping package installation.");
+                    return;
+                }
+
+                Debug.Log("[Synthesis] Pip bootstrapped successfully");
+
                 // Install required packages
                 Debug.Log("[Synthesis] Installing Python packages...");
                 var process = new System.Diagnostics.Process();
@@ -399,9 +454,16 @@ namespace Synthesis.Editor
                 process.StartInfo.CreateNoWindow = true;
                 process.Start();
 
+                // Wait with timeout (5 minutes for package installation)
+                if (!process.WaitForExit(300000))
+                {
+                    process.Kill();
+                    Debug.LogWarning("[Synthesis] Python package installation timed out");
+                    return;
+                }
+
                 string output = process.StandardOutput.ReadToEnd();
                 string error = process.StandardError.ReadToEnd();
-                process.WaitForExit();
 
                 if (process.ExitCode == 0)
                 {

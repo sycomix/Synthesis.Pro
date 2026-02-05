@@ -103,6 +103,7 @@ InitTestScene*.unity*
 *.db
 *.db-shm
 *.db-wal
+*.db.backup*
 backups/
 __pycache__/
 *.pyc
@@ -110,11 +111,25 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 
+# Synthesis.Pro - Large download archives
+models.zip
+python.zip
+
+# Synthesis.Pro - Test artifacts
+Synthesis.Pro/Server/test_*.json
+
 # Synthesis.Pro - Embedded Python Runtime and Models
 # Large binary files that should be downloaded, not committed
 Synthesis.Pro/Server/python/
 Synthesis.Pro/Server/models/
 Assets/Synthesis.Pro/KnowledgeBase/python/
+
+# Python runtime files (DLLs and modules) in Synthesis.Pro root
+Synthesis.Pro/*.pyd
+Synthesis.Pro/*.dll
+
+# Runtime packages (download-on-demand)
+Synthesis.Pro/Runtime/Packages/
 
 # Synthesis.Pro - Migration artifacts
 Synthesis.Pro/Server/migration_log.txt

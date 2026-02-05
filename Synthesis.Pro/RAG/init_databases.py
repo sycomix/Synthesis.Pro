@@ -12,7 +12,7 @@ print("=" * 70)
 
 # Database paths
 server_dir = Path(__file__).parent.parent / "Server"
-public_db = server_dir / "synthesis_knowledge.db"
+public_db = server_dir / "synthesis_public.db"
 private_db = server_dir / "synthesis_private.db"
 
 def init_database(db_path: Path, db_type: str):
@@ -83,6 +83,7 @@ def init_database(db_path: Path, db_type: str):
 # Initialize both databases
 print("\nCreating database files...")
 success = True
+private_db_created = False
 
 if not public_db.exists():
     success &= init_database(public_db, "public")
@@ -90,12 +91,13 @@ else:
     print(f"\n[PUBLIC] Already exists: {public_db}")
 
 if not private_db.exists():
+    private_db_created = True
     success &= init_database(private_db, "private")
 else:
-    print(f"\n[PRIVATE] Already exists: {private_db}")
+    print(f"\n[PRIVATE] Already exists: {private_db} - PRESERVING SACRED DATA")
 
-# Add initial entry to private DB with our VFX finding
-if success and private_db.exists():
+# Add initial entry to private DB ONLY if we just created it
+if success and private_db_created:
     print("\n" + "=" * 70)
     print("Adding VFX investigation findings to private DB...")
     try:

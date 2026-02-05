@@ -47,7 +47,8 @@ namespace Synthesis.Bridge
         
         [Header("References")]
         [SerializeField] private SynLink baseBridge; // Reference to base SynLink
-        
+        [SerializeField] private RAGBridge ragBridge; // Reference to RAG Bridge
+
         private string logsFilePath;
         
         #endregion
@@ -100,8 +101,23 @@ namespace Synthesis.Bridge
                 { "Generate3DModel", HandleGenerate3DModel },
                 { "GenerateShader", HandleGenerateShader },
                 { "GetCapabilities", HandleGetCapabilities },
-                { "GenerateScript", HandleGenerateScript }
+                { "GenerateScript", HandleGenerateScript },
+                // RAG Commands
+                { "StartRAGSession", HandleStartRAGSession },
+                { "ProcessUserMessage", HandleProcessUserMessage },
+                { "ProcessAIResponse", HandleProcessAIResponse },
+                { "EndRAGSession", HandleEndRAGSession }
             };
+
+            // Initialize RAG Bridge if not set
+            if (ragBridge == null)
+            {
+                ragBridge = FindFirstObjectByType<RAGBridge>();
+                if (ragBridge == null)
+                {
+                    ragBridge = gameObject.AddComponent<RAGBridge>();
+                }
+            }
         }
         
         #endregion
@@ -296,21 +312,25 @@ namespace Synthesis.Bridge
         
         private void HandleGenerateSound(BridgeCommand cmd)
         {
-            // TODO: Integrate ElevenLabs sound generation
+            // PLANNED FEATURE: ElevenLabs sound generation API integration
+            // See DEVELOPER_LOG.md - AI Integration Features section
+            // Status: Planned, Priority: Medium, Effort: Medium
             SendResult(cmd.id, true, "Sound generation - Coming soon! 🎵", new Dictionary<string, object>
             {
                 { "status", "not_implemented" },
-                { "message", "ElevenLabs integration planned" }
+                { "message", "ElevenLabs integration planned for future release" }
             });
         }
-        
+
         private void HandleGenerate3DModel(BridgeCommand cmd)
         {
-            // TODO: Integrate Trellis 3D model generation
+            // PLANNED FEATURE: Trellis 3D model generation API integration
+            // See DEVELOPER_LOG.md - AI Integration Features section
+            // Status: Planned, Priority: Medium, Effort: Large
             SendResult(cmd.id, true, "3D model generation - Coming soon! 🗿", new Dictionary<string, object>
             {
                 { "status", "not_implemented" },
-                { "message", "Trellis integration planned" }
+                { "message", "Trellis integration planned for future release" }
             });
         }
         
@@ -548,7 +568,95 @@ namespace Synthesis.Bridge
         }
         
         #endregion
-        
+
+        #region RAG Command Handlers
+
+        private void HandleStartRAGSession(BridgeCommand cmd)
+        {
+            if (ragBridge == null || !ragBridge.IsRAGAvailable())
+            {
+                SendResult(cmd.id, false, "RAG Bridge not available");
+                return;
+            }
+
+            string sessionId = cmd.parameters?.GetValueOrDefault("session_id")?.ToString();
+
+            string preview = ragBridge.StartSession(sessionId);
+
+            SendResult(cmd.id, true, "RAG session started", new Dictionary<string, object>
+            {
+                { "preview", preview },
+                { "session_id", sessionId ?? "auto-generated" }
+            });
+        }
+
+        private void HandleProcessUserMessage(BridgeCommand cmd)
+        {
+            if (ragBridge == null || !ragBridge.IsRAGAvailable())
+            {
+                SendResult(cmd.id, false, "RAG Bridge not available");
+                return;
+            }
+
+            string userMessage = cmd.parameters?.GetValueOrDefault("message")?.ToString();
+
+            if (string.IsNullOrEmpty(userMessage))
+            {
+                SendResult(cmd.id, false, "Missing 'message' parameter");
+                return;
+            }
+
+            string context = ragBridge.ProcessUserMessage(userMessage);
+
+            bool hasContext = !string.IsNullOrEmpty(context);
+
+            SendResult(cmd.id, true, hasContext ? "Context retrieved" : "No context found", new Dictionary<string, object>
+            {
+                { "has_context", hasContext },
+                { "context", context }
+            });
+        }
+
+        private void HandleProcessAIResponse(BridgeCommand cmd)
+        {
+            if (ragBridge == null || !ragBridge.IsRAGAvailable())
+            {
+                SendResult(cmd.id, false, "RAG Bridge not available");
+                return;
+            }
+
+            string aiResponse = cmd.parameters?.GetValueOrDefault("ai_response")?.ToString();
+            string userMessage = cmd.parameters?.GetValueOrDefault("user_message")?.ToString();
+
+            if (string.IsNullOrEmpty(aiResponse))
+            {
+                SendResult(cmd.id, false, "Missing 'ai_response' parameter");
+                return;
+            }
+
+            string result = ragBridge.ProcessAIResponse(aiResponse, userMessage);
+
+            SendResult(cmd.id, true, "AI response processed", new Dictionary<string, object>
+            {
+                { "result", result }
+            });
+        }
+
+        private void HandleEndRAGSession(BridgeCommand cmd)
+        {
+            if (ragBridge == null)
+            {
+                SendResult(cmd.id, false, "RAG Bridge not available");
+                return;
+            }
+
+            ragBridge.EndSession();
+
+            SendResult(cmd.id, true, "RAG session ended");
+        }
+
+        #endregion
+
         #region Helpers
         
         private void SendResult(string commandId, bool success, string message, Dictionary<string, object> data = null)
