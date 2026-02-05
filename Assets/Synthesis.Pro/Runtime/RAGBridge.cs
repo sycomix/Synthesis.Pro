@@ -45,13 +45,17 @@ namespace Synthesis.Bridge
 
         private void Awake()
         {
+            UnityEngine.Debug.LogWarning("[RAG Bridge] ===== AWAKE CALLED =====");
+
             // Singleton
             if (instance != null && instance != this)
             {
+                UnityEngine.Debug.LogWarning($"[RAG Bridge] Singleton check: instance exists, destroying this GameObject");
                 Destroy(gameObject);
                 return;
             }
 
+            UnityEngine.Debug.LogWarning("[RAG Bridge] Passed singleton check, setting up...");
             instance = this;
             DontDestroyOnLoad(gameObject);
 
@@ -59,11 +63,16 @@ namespace Synthesis.Bridge
             serverPath = Path.Combine(Application.dataPath, "..", "Synthesis.Pro", "Server");
             pythonExe = Path.Combine(Application.dataPath, "Synthesis.Pro", "KnowledgeBase", "python", "python.exe");
 
+            // Debug: Log paths for troubleshooting
+            UnityEngine.Debug.Log($"[RAG Bridge] Application.dataPath = {Application.dataPath}");
+            UnityEngine.Debug.Log($"[RAG Bridge] Looking for Python at: {pythonExe}");
+
             // Verify Python exists
             if (!File.Exists(pythonExe))
             {
-                UnityEngine.Debug.LogWarning($"[RAG Bridge] Python not found at: {pythonExe}");
-                UnityEngine.Debug.LogWarning("[RAG Bridge] RAG features disabled");
+                UnityEngine.Debug.LogError($"[RAG Bridge] Python not found at: {pythonExe}");
+                UnityEngine.Debug.LogError($"[RAG Bridge] File.Exists returned false for this path");
+                UnityEngine.Debug.LogError("[RAG Bridge] RAG features disabled");
                 enableRAG = false;
                 return;
             }
@@ -227,6 +236,14 @@ namespace Synthesis.Bridge
         public bool IsRAGAvailable()
         {
             return enableRAG && File.Exists(pythonExe);
+        }
+
+        /// <summary>
+        /// Reset singleton instance (for testing)
+        /// </summary>
+        public static void ResetInstance()
+        {
+            instance = null;
         }
 
         /// <summary>

@@ -6,11 +6,14 @@ import sys
 import json
 from pathlib import Path
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "RAG"))
+# Add Server directory (current location) and RAG directory to path for imports
+server_dir = Path(__file__).parent
+rag_dir = server_dir.parent / "RAG"
+sys.path.insert(0, str(server_dir))
+sys.path.insert(0, str(rag_dir))
 
 from rag_engine import SynthesisRAG
-from context_preview import ContextPreview
+from context_preview import ContextPreviewService
 from context_detector import ContextDetector
 from curiosity_trigger import CuriosityTrigger
 
@@ -20,13 +23,12 @@ class RAGBridgeServer:
 
     def __init__(self):
         # Database paths
-        server_dir = Path(__file__).parent
-        self.public_db = server_dir / "synthesis_public.db"
-        self.private_db = server_dir / "synthesis_private.db"
+        self.server_dir = Path(__file__).parent
+        self.public_db = self.server_dir / "synthesis_public.db"
+        self.private_db = self.server_dir / "synthesis_private.db"
 
-        # Initialize RAG engines
-        self.public_rag = None
-        self.private_rag = None
+        # Initialize RAG engine (single instance handles both databases)
+        self.rag = None
 
         # Initialize services
         self.context_preview = None
@@ -39,19 +41,18 @@ class RAGBridgeServer:
     def initialize(self):
         """Initialize RAG engines and services"""
         try:
-            # Initialize public RAG if database exists
-            if self.public_db.exists():
-                self.public_rag = SynthesisRAG(str(self.public_db))
+            # Initialize single RAG instance with both databases
+            # SynthesisRAG handles both public and private databases internally
+            if self.public_db.exists() or self.private_db.exists():
+                self.rag = SynthesisRAG(
+                    database=str(self.public_db),
+                    private_database=str(self.private_db)
+                )
 
-            # Initialize private RAG if database exists
-            if self.private_db.exists():
-                self.private_rag = SynthesisRAG(str(self.private_db))
-
-            # Use public RAG for services (can search both DBs)
-            if self.public_rag:
-                self.context_preview = ContextPreview(self.public_rag)
-                self.context_detector = ContextDetector(self.public_rag)
-                self.curiosity_trigger = CuriosityTrigger(self.public_rag)
+                # Initialize services with the unified RAG instance
+                self.context_preview = ContextPreviewService(self.rag, user_id="default")
+                self.context_detector = ContextDetector(self.rag)
+                self.curiosity_trigger = CuriosityTrigger(self.rag)
 
             return True
 
@@ -65,7 +66,7 @@ class RAGBridgeServer:
 
         preview = None
         if self.context_preview:
-            preview = self.context_preview.generate_preview()
+            preview = self.context_preview.generate_session_preview()
 
         return {
             "success": True,

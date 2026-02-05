@@ -15,20 +15,27 @@ namespace Synthesis.Editor
         {
             Debug.Log("=== Testing RAG Bridge ===");
 
-            // Find or create RAGBridge
-            var bridge = GameObject.FindFirstObjectByType<RAGBridge>();
-
-            if (bridge == null)
+            // Clean up any existing RAGBridge instances (might have old code)
+            var existingBridges = GameObject.FindObjectsByType<RAGBridge>(FindObjectsSortMode.None);
+            foreach (var existing in existingBridges)
             {
-                Debug.Log("Creating RAGBridge GameObject...");
-                var go = new GameObject("RAGBridge_Test");
-                bridge = go.AddComponent<RAGBridge>();
+                Debug.Log($"Destroying old RAGBridge: {existing.gameObject.name}");
+                GameObject.DestroyImmediate(existing.gameObject);
             }
+
+            // Reset singleton instance (prevents Awake from destroying new component)
+            RAGBridge.ResetInstance();
+
+            // Create fresh RAGBridge with current code
+            Debug.Log("Creating fresh RAGBridge GameObject...");
+            var go = new GameObject("RAGBridge_Test");
+            var bridge = go.AddComponent<RAGBridge>();
 
             // Check if RAG is available
             if (!bridge.IsRAGAvailable())
             {
-                Debug.LogError("[FAIL] RAG Bridge not available - Python not found");
+                Debug.LogError("[FAIL] RAG Bridge not available");
+                Debug.LogError("Check console above for '[RAG Bridge] Python not found at:' to see the path Unity is checking");
                 return;
             }
 
