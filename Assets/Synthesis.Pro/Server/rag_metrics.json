@@ -1,0 +1,93 @@
+{
+  "context_offered": 0,
+  "context_accepted": 0,
+  "context_ignored": 0,
+  "user_satisfied": 0,
+  "user_dissatisfied": 0,
+  "felt_forced": 0,
+  "felt_helpful": 0,
+  "sessions": [
+    {
+      "session_id": "claude_662a1b87",
+      "timestamp": "2026-02-06T14:14:47.512708",
+      "preview_shown": true
+    },
+    {
+      "session_id": "claude_19f62999",
+      "timestamp": "2026-02-06T14:15:07.357636",
+      "preview_shown": true
+    },
+    {
+      "session_id": "claude_c5b328e5",
+      "timestamp": "2026-02-06T14:15:26.895067",
+      "preview_shown": true
+    },
+    {
+      "session_id": "claude_c7b1407d",
+      "timestamp": "2026-02-06T14:17:30.369401",
+      "preview_shown": true
+    },
+    {
+      "session_id": "claude_2c0f2e09",
+      "timestamp": "2026-02-06T14:21:47.810971",
+      "preview_shown": true
+    },
+    {
+      "session_id": "claude_37eee28d",
+      "timestamp": "2026-02-06T14:22:24.311245",
+      "preview_shown": true
+    },
+    {
+      "session_id": "claude_4689f89e",
+      "timestamp": "2026-02-06T14:23:00.775151",
+      "preview_shown": true
+    },
+    {
+      "session_id": "claude_7df52236",
+      "timestamp": "2026-02-06T14:24:07.333439",
+      "preview_shown": true
+    },
+    {
+      "session_id": "claude_521e5fe1",
+      "timestamp": "2026-02-06T14:24:43.646172",
+      "preview_shown": true
+    },
+    {
+      "session_id": "claude_3771f57d",
+      "timestamp": "2026-02-06T14:25:50.208639",
+      "preview_shown": true
+    },
+    {
+      "session_id": "claude_2bb4eb46",
+      "timestamp": "2026-02-06T14:27:26.782933",
+      "preview_shown": true
+    },
+    {
+      "session_id": "claude_f522bd07",
+      "timestamp": "2026-02-06T14:31:33.249219",
+      "preview_shown": true
+    },
+    {
+      "session_id": "claude_d7095ffd",
+      "timestamp": "2026-02-06T14:32:09.609454",
+      "preview_shown": true
+    },
+    {
+      "session_id": "claude_0c9751b2",
+      "timestamp": "2026-02-06T14:32:46.075027",
+      "preview_shown": true
+    },
+    {
+      "session_id": "claude_ea4b69c5",
+      "timestamp": "2026-02-06T14:33:22.559754",
+      "preview_shown": true
+    }
+  ],
+  "thresholds": {
+    "confidence_min": 0.6,
+    "preview_enabled": true,
+    "max_preview_items": 5
+  },
+  "created_at": "2026-02-06T14:14:47.488528",
+  "last_updated": "2026-02-06T14:33:22.559754"
+}

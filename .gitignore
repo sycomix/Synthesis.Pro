@@ -114,6 +114,9 @@ __pycache__/
 # Synthesis.Pro - Large download archives
 models.zip
 python.zip
+python-embedded.zip
+python-embedded-rag.zip
+runtime-packages/
 
 # Synthesis.Pro - Test artifacts
 Synthesis.Pro/Server/test_*.json
@@ -135,19 +138,35 @@ Synthesis.Pro/Runtime/Packages/
 Synthesis.Pro/Server/migration_log.txt
 nul
 
+# Synthesis.Pro - Build artifacts
+temp-python-build/
+*.log
+
 # Synthesis.Pro - Asset Container (working directory, not for version control)
 /[Aa]ssets/Asset Container/
 /[Aa]ssets/Asset Container.meta
 # But track the README explaining its purpose
 !/[Aa]ssets/Asset Container/README.md
 
+# Synthesis.Pro - Embedded Runtimes (large, should be downloaded not committed)
+Assets/Synthesis.Pro/Server/python/
+Assets/Synthesis.Pro/Server/node/
+Assets/Synthesis.Pro/Server/runtime/
+Assets/Synthesis.Pro/Server/models/
+Assets/Synthesis.Pro/Server/database/
+
 # Synthesis.Pro - Asset Store Compliance
 # Exclude executables for Asset Store submission (keep DLLs as native plugins)
 Assets/Synthesis.Pro/KnowledgeBase/python/python.exe
 Assets/Synthesis.Pro/KnowledgeBase/python/pythonw.exe
-Assets/Synthesis.Pro/Server/node/node.exe
 # All .exe files in pip vendor
 Assets/Synthesis.Pro/KnowledgeBase/python/Lib/site-packages/pip/_vendor/distlib/*.exe
 Assets/Synthesis.Pro/KnowledgeBase/python/Lib/site-packages/setuptools/*.exe
 # PyTorch protoc
 Assets/Synthesis.Pro/KnowledgeBase/python/Lib/site-packages/torch/bin/protoc.exe
+
+# Synthesis.Pro - prevent duplicate database files in root
+/synthesis_knowledge.db
+/synthesis_private.db
+/synthesis_public.db
+/models.zip

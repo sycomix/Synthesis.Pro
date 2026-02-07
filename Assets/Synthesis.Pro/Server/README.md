@@ -34,6 +34,7 @@ export OPENAI_API_KEY=your_api_key_here
 3. **Run Server**
 
 ```bash
+cd core
 python websocket_server.py
 ```
 
@@ -56,8 +57,38 @@ You should see:
 ```
 Unity Editor (C#) <--WebSocket--> Python Server <--> RAG Engine
                                         |
-                                        +--> OpenAI API
                                         +--> Knowledge Base (SQLite)
+```
+
+### Project Structure
+
+```
+Server/
+├── core/                   # Core server functionality
+│   ├── websocket_server.py    # Main WebSocket server (entry point)
+│   ├── database_manager.py    # Database operations & setup
+│   └── setup.py               # First-time installation
+│
+├── rag_integration/        # RAG integration layer
+│   ├── rag_onboarding.py      # Natural RAG onboarding
+│   ├── claude_rag_bridge.py   # Claude Code integration
+│   └── rag_auto_updater.py    # Automatic RAG updates
+│
+├── context_systems/        # Context awareness features
+│   ├── context_detector.py    # Detects context needs
+│   ├── context_preview.py     # Session previews
+│   ├── curiosity_trigger.py   # AI uncertainty detection
+│   └── console_monitor.py     # Unity console watching
+│
+├── collective_learning/    # Shared knowledge system
+├── database/              # Database files & utilities
+│   ├── synthesis_knowledge.db     # Public Unity knowledge
+│   └── synthesis_private.db       # Private project data
+│
+├── runtime/               # Embedded Python runtime
+│   └── python/            # Python 3.11 embedded (288MB)
+│
+└── deprecated/            # Old code (do not use)
 ```
 
 ### Communication Flow
